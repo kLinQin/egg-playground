@@ -23,6 +23,7 @@ import {
    FilePlus,
    FileMinus,
    Settings,
+   GitBranch,
 } from 'lucide-react';
 import type { GitConfig, GitStatus, ChangeItem } from '../types';
 import {
@@ -49,7 +50,6 @@ type Props = {
    onPush: (config: GitConfig, commitMessage: string) => void;
    onClearAll: () => void;
 
-   /* ---------- changes ---------- */
    changes: ChangeItem[];
    onStage: (fileId: string) => void;
    onUnstage: (fileId: string) => void;
@@ -273,12 +273,10 @@ export function GitPanel({
    const [branches, setBranches] = useState<BranchOption[]>([]);
    const [branchesLoading, setBranchesLoading] = useState(false);
 
-   /* ---------- commits ---------- */
    const [commits, setCommits] = useState<CommitOption[]>([]);
    const [commitsLoading, setCommitsLoading] = useState(false);
    const [commitsError, setCommitsError] = useState<string | null>(null);
 
-   /* ---------- view mode ---------- */
    const [configOpen, setConfigOpen] = useState(false);
 
    const config: GitConfig = { token, owner, repo, branch };
@@ -290,7 +288,6 @@ export function GitPanel({
    const unstagedChanges = changes.filter((c) => !c.staged);
    const hasStaged = stagedChanges.length > 0;
 
-   /* ---------- paksa config view kalau belum lengkap ---------- */
    const showConfig = !canAct || configOpen;
 
    const fetchOwners = async (t: string) => {
@@ -320,7 +317,7 @@ export function GitPanel({
       }
    };
 
-   /* ---------- auto-verify kalau token tersimpan ---------- */
+   /* auto-verify kalau token tersimpan */
    useEffect(() => {
       if (!token) return;
       if (verifyState.state !== 'idle') return;
@@ -353,7 +350,7 @@ export function GitPanel({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token]);
 
-   /* ---------- fetch repos setelah owner dipilih ---------- */
+   /* fetch repos setelah owner dipilih */
    useEffect(() => {
       if (!token || !owner) return;
       let cancelled = false;
@@ -375,7 +372,7 @@ export function GitPanel({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token, owner, ownerType]);
 
-   /* ---------- fetch branches setelah repo dipilih ---------- */
+   /* fetch branches setelah repo dipilih */
    useEffect(() => {
       if (!token || !owner || !repo) return;
       let cancelled = false;
@@ -404,7 +401,7 @@ export function GitPanel({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token, owner, repo]);
 
-   /* ---------- fetch commits setelah branch dipilih ---------- */
+   /* fetch commits setelah branch dipilih */
    useEffect(() => {
       if (!token || !owner || !repo || !branch) {
          setCommits([]);
@@ -437,13 +434,6 @@ export function GitPanel({
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token, owner, repo, branch]);
-
-   /* ---------- auto-close config saat sudah lengkap ---------- */
-   useEffect(() => {
-      if (canAct && configOpen) {
-         /* biarkan user tutup manual — jangan auto-close */
-      }
-   }, [canAct, configOpen]);
 
    const handleVerify = async () => {
       setVerifyState({ state: 'busy' });
@@ -761,7 +751,6 @@ export function GitPanel({
          {/* ===================== MAIN VIEW ===================== */}
          {!showConfig && (
             <>
-               {/* ---------- Commit + Pull/Push ---------- */}
                <div className="git-panel__actions-section">
                   <label className="field">
                      <span>Commit message</span>
@@ -795,7 +784,6 @@ export function GitPanel({
                   </div>
                </div>
 
-               {/* ---------- Changes ---------- */}
                <div className="changes">
                   <div className="changes__header">
                      <span className="changes__title">
@@ -884,7 +872,6 @@ export function GitPanel({
                   </div>
                </div>
 
-               {/* ---------- History ---------- */}
                <div className="commit-history">
                   <div className="commit-history__header">
                      <GitCommit size={14} />
@@ -962,6 +949,26 @@ export function GitPanel({
                   </div>
                </div>
             </>
+         )}
+
+         {/* ===================== Bottom bar ===================== */}
+         {canAct && (
+            <div className="status-bar status-bar--panel">
+               <GitBranch size={11} />
+               <span className="status-bar__item">
+                  {owner}/{repo}
+               </span>
+               <span className="status-bar__sep" />
+               <span className="status-bar__item">{branch}</span>
+               {commits.length > 0 && (
+                  <>
+                     <span className="status-bar__sep" />
+                     <span className="status-bar__item">
+                        {commits.length} commit{commits.length !== 1 ? 's' : ''}
+                     </span>
+                  </>
+               )}
+            </div>
          )}
 
          {status.state !== 'idle' && (

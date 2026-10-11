@@ -6,6 +6,8 @@ import { getFileIcon } from '../lib/fileIcons';
 type Props = {
    files: FileItem[];
    activeId: string | null;
+   changesCount: number;
+   stagedCount: number;
    onSelect: (id: string) => void;
    onCreate: (name: string) => string | null;
    onRename: (id: string, name: string) => string | null;
@@ -15,6 +17,8 @@ type Props = {
 export function FileManager({
    files,
    activeId,
+   changesCount,
+   stagedCount,
    onSelect,
    onCreate,
    onRename,
@@ -230,6 +234,27 @@ export function FileManager({
          </div>
 
          {error && <div className="file-manager__error">{error}</div>}
+
+         {/* ---------- Bottom bar ---------- */}
+         <div className="status-bar status-bar--panel">
+            <span className="status-bar__item">
+               {files.length} {files.length === 1 ? 'file' : 'files'}
+            </span>
+
+            {changesCount > 0 && (
+               <>
+                  <span className="status-bar__sep" />
+                  <span className="status-bar__item">{changesCount} changes</span>
+               </>
+            )}
+
+            {stagedCount > 0 && (
+               <>
+                  <span className="status-bar__sep" />
+                  <span className="status-bar__item">{stagedCount} staged</span>
+               </>
+            )}
+         </div>
       </div>
    );
 }

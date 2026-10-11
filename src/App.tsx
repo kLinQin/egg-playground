@@ -145,6 +145,12 @@ function App() {
     return list;
   }, [files, stagedIds]);
 
+  /* ---------- derived: file yang di-stage ---------- */
+  const stagedChanges = useMemo(
+    () => changes.filter((c) => c.staged),
+    [changes]
+  );
+
   useEffect(() => {
     setPreviewOpen(false);
   }, [activeTabId]);
@@ -501,6 +507,8 @@ function App() {
               <FileManager
                 files={files}
                 activeId={activeTabId}
+                changesCount={changes.length}
+                stagedCount={stagedChanges.length}
                 onSelect={handleSelectFile}
                 onCreate={handleCreate}
                 onRename={handleRename}
