@@ -2,7 +2,7 @@
    "rewrites": [
       {
          "source": "/github-login/:path*",
-         "destination": "https://github.com/login/:path*"
+         "destination": "https://github.com/:path*"
       },
       {
          "source": "/(.*)",
