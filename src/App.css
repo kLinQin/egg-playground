@@ -266,16 +266,6 @@ body {
   cursor: pointer;
 }
 
-.editor-settings__select {
-  padding: 3px 6px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 12px;
-  max-width: 140px;
-}
 
 /* ===================== File Manager ===================== */
 .file-manager {
@@ -1834,32 +1824,6 @@ body {
   display: none !important;
 }
 
-/* ===================== Gutter: line change indicator ===================== */
-.cm-change-gutter {
-  width: 3px;
-}
-
-.cm-change-marker {
-  width: 3px;
-  height: 100%;
-}
-
-.cm-change-marker--added {
-  background: #10b981;
-}
-
-.cm-change-marker--modified {
-  background: #f59e0b;
-}
-
-[data-theme='dark'] .cm-change-marker--added {
-  background: #34d399;
-}
-
-[data-theme='dark'] .cm-change-marker--modified {
-  background: #fbbf24;
-}
-
 
 .tab-item__close {
   display: inline-flex;
@@ -2164,137 +2128,4 @@ body {
   flex-shrink: 0;
   margin-left: -20px;
   /* ← geser file root ke kiri 8px */
-}
-
-
-/* ===================== Syntax highlighting (hljs) ===================== */
-.markdown-preview__content pre code.hljs {
-  display: block;
-  overflow-x: auto;
-  padding: 0;
-  background: none;
-}
-
-.markdown-preview__content .hljs {
-  color: var(--text);
-  background: transparent;
-}
-
-/* keyword — if, const, function */
-.markdown-preview__content .hljs-keyword,
-.markdown-preview__content .hljs-selector-tag,
-.markdown-preview__content .hljs-literal,
-.markdown-preview__content .hljs-section,
-.markdown-preview__content .hljs-link {
-  color: #d73a49;
-}
-
-/* string */
-.markdown-preview__content .hljs-string,
-.markdown-preview__content .hljs-title,
-.markdown-preview__content .hljs-name,
-.markdown-preview__content .hljs-type,
-.markdown-preview__content .hljs-attribute,
-.markdown-preview__content .hljs-symbol,
-.markdown-preview__content .hljs-bullet,
-.markdown-preview__content .hljs-addition,
-.markdown-preview__content .hljs-variable,
-.markdown-preview__content .hljs-template-tag,
-.markdown-preview__content .hljs-template-variable {
-  color: #032f62;
-}
-
-/* number, constant */
-.markdown-preview__content .hljs-number,
-.markdown-preview__content .hljs-meta,
-.markdown-preview__content .hljs-built_in,
-.markdown-preview__content .hljs-builtin-name,
-.markdown-preview__content .hljs-params {
-  color: #005cc5;
-}
-
-/* comment */
-.markdown-preview__content .hljs-comment,
-.markdown-preview__content .hljs-quote,
-.markdown-preview__content .hljs-deletion {
-  color: #6a737d;
-  font-style: italic;
-}
-
-/* function name */
-.markdown-preview__content .hljs-function .hljs-title,
-.markdown-preview__content .hljs-title.function_ {
-  color: #6f42c1;
-}
-
-/* class name */
-.markdown-preview__content .hljs-class .hljs-title,
-.markdown-preview__content .hljs-title.class_ {
-  color: #6f42c1;
-}
-
-/* tag (HTML/XML) */
-.markdown-preview__content .hljs-tag {
-  color: #22863a;
-}
-
-/* attribute (HTML/XML) */
-.markdown-preview__content .hljs-attr {
-  color: #005cc5;
-}
-
-/* ---------- dark mode ---------- */
-[data-theme='dark'] .markdown-preview__content .hljs-keyword,
-[data-theme='dark'] .markdown-preview__content .hljs-selector-tag,
-[data-theme='dark'] .markdown-preview__content .hljs-literal,
-[data-theme='dark'] .markdown-preview__content .hljs-section,
-[data-theme='dark'] .markdown-preview__content .hljs-link {
-  color: #ff7b72;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-string,
-[data-theme='dark'] .markdown-preview__content .hljs-title,
-[data-theme='dark'] .markdown-preview__content .hljs-name,
-[data-theme='dark'] .markdown-preview__content .hljs-type,
-[data-theme='dark'] .markdown-preview__content .hljs-attribute,
-[data-theme='dark'] .markdown-preview__content .hljs-symbol,
-[data-theme='dark'] .markdown-preview__content .hljs-bullet,
-[data-theme='dark'] .markdown-preview__content .hljs-addition,
-[data-theme='dark'] .markdown-preview__content .hljs-variable,
-[data-theme='dark'] .markdown-preview__content .hljs-template-tag,
-[data-theme='dark'] .markdown-preview__content .hljs-template-variable {
-  color: #a5d6ff;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-number,
-[data-theme='dark'] .markdown-preview__content .hljs-meta,
-[data-theme='dark'] .markdown-preview__content .hljs-built_in,
-[data-theme='dark'] .markdown-preview__content .hljs-builtin-name,
-[data-theme='dark'] .markdown-preview__content .hljs-params {
-  color: #79c0ff;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-comment,
-[data-theme='dark'] .markdown-preview__content .hljs-quote,
-[data-theme='dark'] .markdown-preview__content .hljs-deletion {
-  color: #8b949e;
-  font-style: italic;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-function .hljs-title,
-[data-theme='dark'] .markdown-preview__content .hljs-title.function_ {
-  color: #d2a8ff;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-class .hljs-title,
-[data-theme='dark'] .markdown-preview__content .hljs-title.class_ {
-  color: #d2a8ff;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-tag {
-  color: #7ee787;
-}
-
-[data-theme='dark'] .markdown-preview__content .hljs-attr {
-  color: #79c0ff;
 }

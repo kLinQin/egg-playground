@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   FileItem,
   GitConfig,
@@ -18,11 +18,14 @@ import { Toolbar } from './components/Toolbar';
 import { FileManager } from './components/FileManager';
 import { Editor } from './components/Editor';
 import { TabBar } from './components/TabBar';
-import { GitPanel } from './components/GitPanel';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { pullRepo, syncFiles } from './lib/github';
 import type { SyncOperation } from './lib/github';
 import './App.css';
+
+const GitPanel = lazy(() =>
+  import('./components/GitPanel').then((m) => ({ default: m.GitPanel }))
+);
 
 type PendingGitAction =
   | { type: 'pull'; config: GitConfig }
@@ -78,10 +81,6 @@ function App() {
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
     setTheme(next);
-    updateSettings(
-      'editorTheme',
-      next === 'dark' ? 'vscodeDark' : 'githubLight'
-    );
   };
 
   useEffect(() => {
@@ -863,20 +862,26 @@ function App() {
                   : { width: gitCol.width, flexShrink: 0 }
               }
             >
-              <GitPanel
-                status={gitStatus}
-                onClose={() => setGitOpen(false)}
-                onPull={handlePull}
-                onPush={handlePush}
-                onClearAll={handleClearAll}
-                changes={changes}
-                onStage={handleStage}
-                onUnstage={handleUnstage}
-                onRestore={handleRestore}
-                onStageAll={handleStageAll}
-                onUnstageAll={handleUnstageAll}
-                onRestoreAll={handleRestoreAll}
-              />
+              <Suspense
+                fallback={
+                  <div className="editor-placeholder">Memuat Git panel…</div>
+                }
+              >
+                <GitPanel
+                  status={gitStatus}
+                  onClose={() => setGitOpen(false)}
+                  onPull={handlePull}
+                  onPush={handlePush}
+                  onClearAll={handleClearAll}
+                  changes={changes}
+                  onStage={handleStage}
+                  onUnstage={handleUnstage}
+                  onRestore={handleRestore}
+                  onStageAll={handleStageAll}
+                  onUnstageAll={handleUnstageAll}
+                  onRestoreAll={handleRestoreAll}
+                />
+              </Suspense>
             </div>
           </>
         )}

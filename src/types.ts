@@ -88,33 +88,22 @@ export type StoredFont = {
    mimeType: string;
 };
 
-export type EditorTheme =
-   | 'auto'
-   | 'githubLight'
-   | 'xcodeLight'
-   | 'solarizedLight'
-   | 'materialLight'
-   | 'eclipse'
-   | 'sublime'
-   | 'oneDark'
-   | 'dracula'
-   | 'nord'
-   | 'monokai'
-   | 'tokyoNight'
-   | 'githubDark'
-   | 'materialDark'
-   | 'vscodeDark'
-   | 'solarizedDark';
-
 export type EditorSettings = {
    fontSize: number;
    lineHeight: number;
    lineNumbers: boolean;
    lineWrap: boolean;
    autocomplete: boolean;
-   editorTheme: EditorTheme;
    /** jumlah spasi untuk satu tingkat indentasi */
    tabSize: number;
    /** pakai tab char (true) atau spasi (false) */
    indentWithTabs: boolean;
+   /** tampilkan garis indent guide */
+   indentGuides: boolean;
+   /** tampilkan error/warning di bawah kode */
+   linting: boolean;
+   /** sorot baris tempat cursor berada */
+   highlightActiveLine: boolean;
+   /** auto-tutup pasangan bracket & quote */
+   closeBrackets: boolean;
 };

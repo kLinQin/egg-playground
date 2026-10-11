@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, SlidersHorizontal } from 'lucide-react';
-import type { FileItem, EditorSettings, EditorTheme } from '../types';
-import { EDITOR_THEMES } from '../editorThemes';
+import type { FileItem, EditorSettings } from '../types';
 import { getFileIcon } from '../lib/fileIcons';
 
 type Props = {
@@ -136,28 +135,6 @@ export function TabBar({
             {settingsOpen && (
                <div className="dropdown__menu dropdown--menu-left editor-settings">
                   <label className="editor-settings__row">
-                     <span>Editor theme</span>
-                     <select
-                        className="editor-settings__select"
-                        value={settings.editorTheme}
-                        onChange={(e) =>
-                           onChangeSettings(
-                              'editorTheme',
-                              e.target.value as EditorTheme
-                           )
-                        }
-                     >
-                        {EDITOR_THEMES.map((t) => (
-                           <option key={t.id} value={t.id}>
-                              {t.label}
-                           </option>
-                        ))}
-                     </select>
-                  </label>
-
-                  <div className="dropdown__sep" />
-
-                  <label className="editor-settings__row">
                      <span>Font size</span>
                      <input
                         type="number"
@@ -221,6 +198,53 @@ export function TabBar({
                         checked={settings.autocomplete}
                         onChange={(e) =>
                            onChangeSettings('autocomplete', e.target.checked)
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Indent guides</span>
+                     <input
+                        type="checkbox"
+                        checked={settings.indentGuides}
+                        onChange={(e) =>
+                           onChangeSettings('indentGuides', e.target.checked)
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Linting</span>
+                     <input
+                        type="checkbox"
+                        checked={settings.linting}
+                        onChange={(e) =>
+                           onChangeSettings('linting', e.target.checked)
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Highlight active line</span>
+                     <input
+                        type="checkbox"
+                        checked={settings.highlightActiveLine}
+                        onChange={(e) =>
+                           onChangeSettings(
+                              'highlightActiveLine',
+                              e.target.checked
+                           )
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Close brackets</span>
+                     <input
+                        type="checkbox"
+                        checked={settings.closeBrackets}
+                        onChange={(e) =>
+                           onChangeSettings('closeBrackets', e.target.checked)
                         }
                      />
                   </label>

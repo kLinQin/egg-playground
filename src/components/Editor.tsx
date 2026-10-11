@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { githubLight } from '@uiw/codemirror-theme-github';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import { autocompletion } from '@codemirror/autocomplete';
 import { EditorView, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
@@ -14,18 +15,15 @@ import {
    findPrevious,
 } from '@codemirror/search';
 import { forEachDiagnostic } from '@codemirror/lint';
-import { diffLines } from 'diff';
+import type { Extension } from '@codemirror/state';
 import type { FileItem, Theme, EditorSettings } from '../types';
-import { getLanguage } from '../languages';
-import { getEditorTheme } from '../editorThemes';
+import { findLanguage, loadLanguageExtension } from '../languages';
 import { lintExtensions } from '../editorLint';
-import {
-   lineChangeGutter,
-   applyLineChanges,
-   type LineChange,
-} from '../editorGutter';
 import { EditorStatusBar } from './EditorStatusBar';
-import { MarkdownPreview } from './MarkdownPreview';
+
+const MarkdownPreview = lazy(() =>
+   import('./MarkdownPreview').then((m) => ({ default: m.MarkdownPreview }))
+);
 
 type Props = {
    file: FileItem;
@@ -36,38 +34,6 @@ type Props = {
    onChange: (content: string) => void;
 };
 
-/** Hitung baris added/modified dari savedContent vs content. */
-function computeLineChanges(
-   savedContent: string,
-   content: string
-): LineChange[] {
-   if (savedContent === content) return [];
-
-   const parts = diffLines(savedContent, content);
-   const changes: LineChange[] = [];
-   let lineNo = 1;
-
-   for (const part of parts) {
-      const lineCount = part.count ?? 0;
-
-      if (part.added) {
-         // baris baru — tandai hijau
-         for (let i = 0; i < lineCount; i++) {
-            changes.push({ line: lineNo + i, type: 'added' });
-         }
-         lineNo += lineCount;
-      } else if (part.removed) {
-         // baris dihapus — tidak ada di dokumen, skip
-         // (tidak menambah lineNo karena baris sudah tidak ada)
-      } else {
-         // baris tidak berubah — majukan lineNo
-         lineNo += lineCount;
-      }
-   }
-
-   return changes;
-}
-
 export function Editor({
    file,
    fontFamily,
@@ -76,26 +42,41 @@ export function Editor({
    previewOpen,
    onChange,
 }: Props) {
-   const lang = getLanguage(file.name);
+   const lang = findLanguage(file.name);
    const viewRef = useRef<EditorView | null>(null);
    const cmRef = useRef<ReactCodeMirrorRef>(null);
 
    const [cursor, setCursor] = useState({ line: 1, col: 1 });
    const [lintCount, setLintCount] = useState({ errors: 0, warnings: 0 });
+   const [langExtension, setLangExtension] = useState<Extension | null>(null);
+
+   /* ---------- load bahasa secara lazy (dengan cache) ---------- */
+   useEffect(() => {
+      if (!lang.load || !lang.label) {
+         setLangExtension(null);
+         return;
+      }
+
+      let cancelled = false;
+      loadLanguageExtension(lang.label, lang.load).then((ext) => {
+         if (!cancelled) setLangExtension(ext);
+      });
+
+      return () => {
+         cancelled = true;
+      };
+   }, [lang.label, lang.load]);
 
    const extensions = useMemo(() => {
       const exts = [];
 
-      if (lang.extension) exts.push(lang.extension);
+      if (langExtension) exts.push(langExtension);
       if (settings.autocomplete) exts.push(autocompletion());
 
       exts.push(search({ top: true }));
 
       /* ---------- linting ---------- */
-      exts.push(...lintExtensions());
-
-      /* ---------- git-like gutter ---------- */
-      exts.push(lineChangeGutter());
+      if (settings.linting) exts.push(...lintExtensions());
 
       /* ---------- indentasi ---------- */
       const indentStr = settings.indentWithTabs
@@ -109,19 +90,21 @@ export function Editor({
       );
 
       /* ---------- indent guides + active block highlight ---------- */
-      exts.push(
-         indentationMarkers({
-            highlightActiveBlock: true,
-            hideFirstIndent: false,
-            thickness: 1,
-            colors: {
-               light: 'rgba(0, 0, 0, 0.1)',
-               dark: 'rgba(255, 255, 255, 0.1)',
-               activeLight: 'rgba(0, 0, 0, 0.25)',
-               activeDark: 'rgba(255, 255, 255, 0.25)',
-            },
-         })
-      );
+      if (settings.indentGuides) {
+         exts.push(
+            indentationMarkers({
+               highlightActiveBlock: true,
+               hideFirstIndent: false,
+               thickness: 1,
+               colors: {
+                  light: 'rgba(0, 0, 0, 0.1)',
+                  dark: 'rgba(255, 255, 255, 0.1)',
+                  activeLight: 'rgba(0, 0, 0, 0.25)',
+                  activeDark: 'rgba(255, 255, 255, 0.25)',
+               },
+            })
+         );
+      }
 
       exts.push(
          EditorView.theme({
@@ -147,7 +130,7 @@ export function Editor({
       }
 
       return exts;
-   }, [lang.extension, settings, fontFamily]);
+   }, [langExtension, settings, fontFamily]);
 
    /* Ctrl+F / Ctrl+H */
    useEffect(() => {
@@ -230,20 +213,9 @@ export function Editor({
       return () => window.clearInterval(id);
    }, [file.id, file.content]);
 
-   /* hitung line changes (added/modified) → kirim ke gutter */
-   useEffect(() => {
-      const view = viewRef.current;
-      if (!view) return;
-
-      const changes = computeLineChanges(file.savedContent, file.content);
-      applyLineChanges(view, changes);
-   }, [file.id, file.content, file.savedContent]);
-
    const codeMirrorTheme = useMemo(() => {
-      const t = getEditorTheme(settings.editorTheme);
-      if (t.extension) return t.extension;
-      return theme === 'dark' ? oneDark : 'light';
-   }, [settings.editorTheme, theme]);
+      return theme === 'dark' ? vscodeDark : githubLight;
+   }, [theme]);
 
    const handleUpdate = (vu: ViewUpdate) => {
       if (vu.selectionSet || vu.docChanged || vu.focusChanged) {
@@ -273,6 +245,13 @@ export function Editor({
                   theme={codeMirrorTheme}
                   extensions={extensions}
                   editable={true}
+                  basicSetup={{
+                     foldGutter: false,
+                     lineNumbers: settings.lineNumbers,
+                     autocompletion: false,
+                     highlightActiveLine: settings.highlightActiveLine,
+                     closeBrackets: settings.closeBrackets,
+                  }}
                   onChange={onChange}
                   onUpdate={handleUpdate}
                   onCreateEditor={(view) => {
@@ -281,14 +260,18 @@ export function Editor({
                />
             </div>
 
-            <div className="editor-split__pane editor-split__pane--preview">
-               <MarkdownPreview
-                  content={file.content}
-                  fontFamily={fontFamily}
-                  fontSize={settings.fontSize}
-                  lineHeight={settings.lineHeight}
-               />
-            </div>
+            {previewOpen && (
+               <div className="editor-split__pane editor-split__pane--preview">
+                  <Suspense fallback={null}>
+                     <MarkdownPreview
+                        content={file.content}
+                        fontFamily={fontFamily}
+                        fontSize={settings.fontSize}
+                        lineHeight={settings.lineHeight}
+                     />
+                  </Suspense>
+               </div>
+            )}
          </div>
 
          <EditorStatusBar

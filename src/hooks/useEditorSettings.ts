@@ -9,9 +9,12 @@ const DEFAULTS: EditorSettings = {
    lineNumbers: true,
    lineWrap: false,
    autocomplete: true,
-   editorTheme: 'auto',
    tabSize: 2,
    indentWithTabs: false,
+   indentGuides: true,
+   linting: true,
+   highlightActiveLine: true,
+   closeBrackets: true,
 };
 
 function read(): EditorSettings {

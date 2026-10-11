@@ -1,65 +1,59 @@
-import { javascript } from '@codemirror/lang-javascript';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
-import { json } from '@codemirror/lang-json';
-import { markdown } from '@codemirror/lang-markdown';
-import { python } from '@codemirror/lang-python';
-import { rust } from '@codemirror/lang-rust';
-import { sql } from '@codemirror/lang-sql';
-import { xml } from '@codemirror/lang-xml';
 import type { Extension } from '@codemirror/state';
 
 type LangDef = {
    label: string;
    extensions: string[];
-   load: () => Extension;
+   load: () => Promise<Extension>;
 };
 
 const LANGS: LangDef[] = [
    {
       label: 'JavaScript / TypeScript',
       extensions: ['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs'],
-      load: () => javascript({ jsx: true, typescript: true }),
+      load: async () => {
+         const { javascript } = await import('@codemirror/lang-javascript');
+         return javascript({ jsx: true, typescript: true });
+      },
    },
    {
       label: 'HTML',
       extensions: ['html', 'htm'],
-      load: () => html(),
+      load: async () => {
+         const { html } = await import('@codemirror/lang-html');
+         return html();
+      },
    },
    {
       label: 'CSS',
       extensions: ['css'],
-      load: () => css(),
+      load: async () => {
+         const { css } = await import('@codemirror/lang-css');
+         return css();
+      },
    },
    {
       label: 'JSON',
       extensions: ['json'],
-      load: () => json(),
+      load: async () => {
+         const { json } = await import('@codemirror/lang-json');
+         return json();
+      },
    },
    {
       label: 'Markdown',
       extensions: ['md', 'markdown'],
-      load: () => markdown(),
+      load: async () => {
+         const { markdown } = await import('@codemirror/lang-markdown');
+         return markdown();
+      },
    },
    {
       label: 'Python',
       extensions: ['py'],
-      load: () => python(),
-   },
-   {
-      label: 'Rust',
-      extensions: ['rs'],
-      load: () => rust(),
-   },
-   {
-      label: 'SQL',
-      extensions: ['sql'],
-      load: () => sql(),
-   },
-   {
-      label: 'XML',
-      extensions: ['xml'],
-      load: () => xml(),
+      load: async () => {
+         const { python } = await import('@codemirror/lang-python');
+         return python();
+      },
    },
 ];
 
@@ -68,13 +62,36 @@ export type LanguageInfo = {
    extension: Extension | null;
 };
 
-export function getLanguage(filename: string): LanguageInfo {
+/* ---------- cache: modul-level, tidak di-reset saat komponen re-mount ---------- */
+const extensionCache = new Map<string, Extension>();
+
+/** Cari definisi bahasa tanpa load parser. */
+export function findLanguage(filename: string): {
+   label: string;
+   load: (() => Promise<Extension>) | null;
+} {
    const dot = filename.lastIndexOf('.');
-   if (dot === -1) return { label: 'Plain text', extension: null };
+   if (dot === -1) return { label: 'Plain text', load: null };
 
    const ext = filename.slice(dot + 1).toLowerCase();
    const match = LANGS.find((l) => l.extensions.includes(ext));
 
-   if (!match) return { label: 'Plain text', extension: null };
-   return { label: match.label, extension: match.load() };
+   if (!match) return { label: 'Plain text', load: null };
+   return { label: match.label, load: match.load };
+}
+
+/**
+ * Ambil extension bahasa. Return cached kalau sudah pernah di-load.
+ * `extId` = kunci unik (mis. label bahasa).
+ */
+export async function loadLanguageExtension(
+   extId: string,
+   loader: () => Promise<Extension>
+): Promise<Extension> {
+   const cached = extensionCache.get(extId);
+   if (cached) return cached;
+
+   const ext = await loader();
+   extensionCache.set(extId, ext);
+   return ext;
 }
