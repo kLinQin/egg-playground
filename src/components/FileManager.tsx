@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FileText, Plus, Trash2, Check, X, Pencil } from 'lucide-react';
+import { Plus, Trash2, Check, X, Pencil } from 'lucide-react';
 import type { FileItem } from '../types';
+import { getFileIcon } from '../lib/fileIcons';
 
 type Props = {
    files: FileItem[];
@@ -99,7 +100,16 @@ export function FileManager({
          <div className="file-manager__list">
             {adding && (
                <div className="file-item file-item--editing">
-                  <FileText size={14} />
+                  {(() => {
+                     const { Icon, color } = getFileIcon(draftName || 'untitled');
+                     return (
+                        <Icon
+                           size={14}
+                           className="file-item__icon"
+                           {...(color ? { style: { color } } : {})}
+                        />
+                     );
+                  })()}
                   <input
                      autoFocus
                      className="file-item__input"
@@ -128,11 +138,24 @@ export function FileManager({
 
             {files.map((file) => {
                const isEditing = editingId === file.id;
+               const isDirty = file.content !== file.savedContent;
+
+               const status: 'added' | 'modified' | null = file.isNew
+                  ? 'added'
+                  : isDirty
+                     ? 'modified'
+                     : null;
+
+               const { Icon, color } = getFileIcon(file.name);
 
                if (isEditing) {
                   return (
                      <div key={file.id} className="file-item file-item--editing">
-                        <FileText size={14} />
+                        <Icon
+                           size={14}
+                           className="file-item__icon"
+                           {...(color ? { style: { color } } : {})}
+                        />
                         <input
                            autoFocus
                            className="file-item__input"
@@ -169,10 +192,17 @@ export function FileManager({
                      }
                      onClick={() => onSelect(file.id)}
                   >
-                     <FileText size={14} />
-                     <span className="file-item__name">
+                     <Icon
+                        size={14}
+                        className="file-item__icon"
+                        {...(color ? { style: { color } } : {})}
+                     />
+                     <span
+                        className={`file-item__name ${status ? `file-item__name--${status}` : ''
+                           }`}
+                     >
                         {file.name}
-                        {!file.saved && <span className="file-item__dirty">*</span>}
+                        {isDirty && <span className="file-item__dirty">*</span>}
                      </span>
                      <button
                         className="file-item__action"

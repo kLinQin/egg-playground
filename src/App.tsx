@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react';
-import type { FileItem, GitConfig, GitStatus } from './types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  FileItem,
+  GitConfig,
+  GitStatus,
+  ChangeItem,
+  FileStatus,
+} from './types';
 import { useTheme } from './hooks/useTheme';
 import { useCustomFonts } from './hooks/useCustomFonts';
 import { useEditorSettings } from './hooks/useEditorSettings';
@@ -22,6 +28,8 @@ type PendingGitAction =
   | { type: 'push'; config: GitConfig; commitMessage: string }
   | null;
 
+const SUCCESS_TIMEOUT = 3000;
+
 function App() {
   const { theme, setTheme } = useTheme();
   const { settings, update: updateSettings } = useEditorSettings();
@@ -35,11 +43,7 @@ function App() {
     clearError: clearFontError,
   } = useCustomFonts();
 
-  const {
-    files,
-    setFiles,
-    clearAll: clearFiles,
-  } = useFileStorage();
+  const { files, setFiles, clearAll: clearFiles } = useFileStorage();
 
   const {
     tabs,
@@ -90,22 +94,76 @@ function App() {
     label: string;
   } | null>(null);
 
-  /* preview state di App — supaya Toolbar bisa kontrol */
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [stagedIds, setStagedIds] = useState<Set<string>>(new Set());
+
+  const successTimerRef = useRef<number | null>(null);
+
+  const flashSuccess = (message: string) => {
+    if (successTimerRef.current !== null) {
+      window.clearTimeout(successTimerRef.current);
+    }
+    setGitStatus({ state: 'success', message });
+    successTimerRef.current = window.setTimeout(() => {
+      setGitStatus({ state: 'idle' });
+      successTimerRef.current = null;
+    }, SUCCESS_TIMEOUT);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current !== null) {
+        window.clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   const activeFile = files.find((f) => f.id === activeTabId) ?? null;
 
-  /* reset preview saat ganti file */
+  const changes: ChangeItem[] = useMemo(() => {
+    const list: ChangeItem[] = [];
+
+    for (const file of files) {
+      if (file.isNew) {
+        list.push({
+          file,
+          status: 'added' as FileStatus,
+          staged: stagedIds.has(file.id),
+        });
+        continue;
+      }
+
+      if (file.content !== file.savedContent) {
+        list.push({
+          file,
+          status: 'modified' as FileStatus,
+          staged: stagedIds.has(file.id),
+        });
+      }
+    }
+
+    return list;
+  }, [files, stagedIds]);
+
   useEffect(() => {
     setPreviewOpen(false);
   }, [activeTabId]);
 
-  /* auto-prune tabs saat files berubah */
   useEffect(() => {
     pruneTabs(files.map((f) => f.id));
   }, [files, pruneTabs]);
 
-  /* auto-buka tab pertama kalau kosong */
+  useEffect(() => {
+    setStagedIds((prev) => {
+      const validIds = new Set(files.map((f) => f.id));
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (validIds.has(id)) next.add(id);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [files]);
+
   useEffect(() => {
     if (tabs.length === 0 && files.length > 0) {
       openTab(files[0].id);
@@ -136,16 +194,7 @@ function App() {
 
   useKeyboardShortcuts({
     onSave: () => {
-      if (!activeFile) return;
-      if (!activeFile.readOnly && !activeFile.saved) {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === activeFile.id
-              ? { ...f, saved: true, readOnly: true }
-              : f
-          )
-        );
-      }
+      /* no-op */
     },
     onClose: () => {
       if (activeTabId) closeTab(activeTabId);
@@ -172,7 +221,7 @@ function App() {
     const id = crypto.randomUUID();
     setFiles((prev) => [
       ...prev,
-      { id, name, content: '', saved: false, readOnly: false },
+      { id, name, content: '', savedContent: '', isNew: true },
     ]);
     openTab(id);
     return null;
@@ -200,29 +249,80 @@ function App() {
     if (!activeFile) return;
     setFiles((prev) =>
       prev.map((f) =>
-        f.id === activeFile.id
-          ? { ...f, content, saved: false, readOnly: false }
+        f.id === activeFile.id ? { ...f, content } : f
+      )
+    );
+  };
+
+  const handleStage = (fileId: string) => {
+    setStagedIds((prev) => {
+      const next = new Set(prev);
+      next.add(fileId);
+      return next;
+    });
+  };
+
+  const handleUnstage = (fileId: string) => {
+    setStagedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(fileId);
+      return next;
+    });
+  };
+
+  const handleRestore = (fileId: string) => {
+    const file = files.find((f) => f.id === fileId);
+    if (!file) return;
+
+    if (file.isNew) {
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      if (tabs.includes(fileId)) closeTab(fileId);
+      setStagedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(fileId);
+        return next;
+      });
+      return;
+    }
+
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === fileId ? { ...f, content: f.savedContent } : f
+      )
+    );
+    setStagedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(fileId);
+      return next;
+    });
+  };
+
+  const handleStageAll = () => {
+    setStagedIds(new Set(changes.map((c) => c.file.id)));
+  };
+
+  const handleUnstageAll = () => {
+    setStagedIds(new Set());
+  };
+
+  const handleRestoreAll = () => {
+    const filtered = files
+      .filter((f) => !f.isNew)
+      .map((f) =>
+        f.content !== f.savedContent
+          ? { ...f, content: f.savedContent }
           : f
-      )
-    );
-  };
+      );
 
-  const handleSave = () => {
-    if (!activeFile) return;
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === activeFile.id ? { ...f, saved: true, readOnly: true } : f
-      )
-    );
-  };
+    setFiles(filtered);
 
-  const handleEdit = () => {
-    if (!activeFile) return;
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === activeFile.id ? { ...f, readOnly: false } : f
-      )
-    );
+    for (const f of files) {
+      if (f.isNew && tabs.includes(f.id)) {
+        closeTab(f.id);
+      }
+    }
+
+    setStagedIds(new Set());
   };
 
   const handleRequestRemoveFont = (id: string) => {
@@ -237,7 +337,6 @@ function App() {
     setPendingFontDelete(null);
   };
 
-  /* ---------- Pull ---------- */
   const doPull = async (config: GitConfig) => {
     setGitStatus({ state: 'busy', message: 'Pull dari GitHub...' });
 
@@ -252,11 +351,12 @@ function App() {
       id: crypto.randomUUID(),
       name: f.name,
       content: f.content,
-      saved: true,
-      readOnly: true,
+      savedContent: f.content,
+      isNew: false,
     }));
 
     setFiles(newFiles);
+    setStagedIds(new Set());
     closeAllTabs();
     if (newFiles.length > 0) {
       setTimeout(() => openTab(newFiles[0].id), 0);
@@ -264,23 +364,31 @@ function App() {
 
     const skippedMsg =
       result.skipped > 0 ? ` (${result.skipped} file dilewati)` : '';
-    setGitStatus({
-      state: 'success',
-      message: `Pull berhasil: ${result.files.length} file${skippedMsg}.`,
-    });
+    flashSuccess(
+      `Pull berhasil: ${result.files.length} file${skippedMsg}.`
+    );
   };
 
   const handlePull = (config: GitConfig) => {
     setPendingGit({ type: 'pull', config });
   };
 
-  /* ---------- Push ---------- */
   const doPush = async (config: GitConfig, commitMessage: string) => {
+    const staged = changes.filter((c) => c.staged);
+
+    if (staged.length === 0) {
+      setGitStatus({
+        state: 'error',
+        message: 'Tidak ada file yang di-stage.',
+      });
+      return;
+    }
+
     setGitStatus({ state: 'busy', message: 'Push ke GitHub...' });
 
-    const payload = files.map((f) => ({
-      path: f.name,
-      content: f.content,
+    const payload = staged.map((c) => ({
+      path: c.file.name,
+      content: c.file.content,
     }));
 
     const result = await pushFiles(config, payload, commitMessage);
@@ -290,22 +398,19 @@ function App() {
       return;
     }
 
-    if (result.failed > 0) {
-      setGitStatus({
-        state: 'error',
-        message: `Push selesai: ${result.pushed} berhasil, ${result.failed} gagal. ${result.errors[0] ?? ''}`,
-      });
-      return;
-    }
-
+    const pushedIds = new Set(staged.map((c) => c.file.id));
     setFiles((prev) =>
-      prev.map((f) => ({ ...f, saved: true, readOnly: true }))
+      prev.map((f) =>
+        pushedIds.has(f.id)
+          ? { ...f, savedContent: f.content, isNew: false }
+          : f
+      )
     );
+    setStagedIds(new Set());
 
-    setGitStatus({
-      state: 'success',
-      message: `Push berhasil: ${result.pushed} file.`,
-    });
+    flashSuccess(
+      `Push berhasil: ${result.pushed} file (${result.commitSha.slice(0, 7)}).`
+    );
   };
 
   const handlePush = (config: GitConfig, commitMessage: string) => {
@@ -331,15 +436,17 @@ function App() {
           'Pull akan MENGGANTI semua file lokal dengan file dari repository. File lokal yang tidak ada di repository akan hilang. Lanjutkan?',
       };
     }
+    const stagedCount = changes.filter((c) => c.staged).length;
     return {
       title: 'Push ke GitHub?',
-      message: `Push akan mengirim ${files.length} file ke repository ${pendingGit.config.owner}/${pendingGit.config.repo} (branch ${pendingGit.config.branch}). File di remote akan ditimpa jika sudah ada. Lanjutkan?`,
+      message: `Push akan mengirim ${stagedCount} file (yang di-stage) ke repository ${pendingGit.config.owner}/${pendingGit.config.repo} (branch ${pendingGit.config.branch}). Lanjutkan?`,
     };
   })();
 
   const handleClearAll = () => {
     clearFiles();
     closeAllTabs();
+    setStagedIds(new Set());
     setGitStatus({ state: 'idle' });
   };
 
@@ -367,12 +474,8 @@ function App() {
         onToggleFiles={handleToggleFiles}
         filesOpen={filesOpen}
         file={activeFile}
-        onSaveFile={handleSave}
-        onEditFile={handleEdit}
         previewOpen={previewOpen}
         onTogglePreview={() => setPreviewOpen((v) => !v)}
-        settings={settings}
-        onChangeSettings={updateSettings}
       />
 
       <div className="app__body">
@@ -420,6 +523,8 @@ function App() {
             activeTabId={activeTabId}
             onSelect={setActiveTab}
             onClose={closeTab}
+            settings={settings}
+            onChangeSettings={updateSettings}
           />
 
           {activeFile ? (
@@ -459,6 +564,13 @@ function App() {
                 onPull={handlePull}
                 onPush={handlePush}
                 onClearAll={handleClearAll}
+                changes={changes}
+                onStage={handleStage}
+                onUnstage={handleUnstage}
+                onRestore={handleRestore}
+                onStageAll={handleStageAll}
+                onUnstageAll={handleUnstageAll}
+                onRestoreAll={handleRestoreAll}
               />
             </div>
           </>

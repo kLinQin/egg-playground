@@ -83,6 +83,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg);
 }
 
@@ -292,12 +293,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 0 10px;
+  height: 34px;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .file-manager__list {
@@ -368,7 +371,7 @@ body {
 }
 
 .file-item__action {
-  opacity: 0;
+  opacity: 0.6;
   background: none;
   border: none;
   cursor: pointer;
@@ -678,8 +681,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 0 10px;
+  height: 34px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .git-panel__title {
@@ -698,6 +703,17 @@ body {
   flex-direction: column;
   gap: 8px;
   padding: 10px;
+}
+
+/* ===================== Git Panel — Actions Section (Main View) ===================== */
+.git-panel__actions-section {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  background: var(--bg-alt);
 }
 
 .git-panel__actions {
@@ -1204,6 +1220,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 3px 10px;
+  padding-bottom: calc(3px + env(safe-area-inset-bottom));
   background: var(--bg-muted);
   border-top: 1px solid var(--border);
   font-size: 11px;
@@ -1318,6 +1335,130 @@ body {
   gap: 8px;
   margin-top: 16px;
   flex-wrap: wrap;
+}
+
+/* ===================== Changes Section ===================== */
+.changes {
+  flex: 1;
+  min-height: 120px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.changes__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.changes__title {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.changes__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.changes__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.changes__empty {
+  padding: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.change-item:hover {
+  background: var(--hover);
+}
+
+.change-item__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.change-item__status--added {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.change-item__status--modified {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.change-item__status--deleted {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+[data-theme='dark'] .change-item__status--added {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+[data-theme='dark'] .change-item__status--modified {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .change-item__status--deleted {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.change-item__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.change-item__action {
+  flex-shrink: 0;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.change-item:hover .change-item__action {
+  opacity: 1;
 }
 
 /* ===================== Commit History ===================== */
@@ -1596,22 +1737,7 @@ body {
   border-bottom: 1px solid var(--border);
   height: 34px;
   flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-}
-
-.tab-bar::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tab-bar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tab-bar::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.3);
-  border-radius: 2px;
+  overflow: visible;
 }
 
 .tab-item {
@@ -1680,7 +1806,7 @@ body {
   color: var(--text-muted);
   border-radius: 3px;
   flex-shrink: 0;
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.1s, background 0.1s, color 0.1s;
 }
 
@@ -1712,3 +1838,77 @@ body {
     height: 16px;
   }
 }
+
+/* ===================== Tab Bar — wrapper dengan settings ===================== */
+.tab-bar__scroll {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+.tab-bar__scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab-bar__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-bar__scroll::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 2px;
+}
+
+.tab-bar__settings {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ===================== File Manager — Git Status Colors ===================== */
+.file-item__name--modified {
+  color: #f59e0b;
+}
+
+.file-item__name--added {
+  color: #10b981;
+}
+
+.file-item--active .file-item__name--modified {
+  color: #fbbf24;
+}
+
+.file-item--active .file-item__name--added {
+  color: #34d399;
+}
+
+[data-theme='dark'] .file-item__name--modified {
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .file-item__name--added {
+  color: #34d399;
+}
+
+[data-theme='dark'] .file-item--active .file-item__name--modified {
+  color: #fcd34d;
+}
+
+[data-theme='dark'] .file-item--active .file-item__name--added {
+  color: #6ee7b7;
+}
+
+/* ===================== File & tab icon ===================== */
+.file-item__icon,
+.tab-item__icon {
+  flex-shrink: 0;
+}
+
+

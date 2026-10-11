@@ -4,6 +4,9 @@ import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { autocompletion } from '@codemirror/autocomplete';
 import { EditorView, ViewUpdate } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { indentUnit } from '@codemirror/language';
+import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 import {
    search,
    openSearchPanel,
@@ -39,11 +42,41 @@ export function Editor({
 
    const [cursor, setCursor] = useState({ line: 1, col: 1 });
 
+
    const extensions = useMemo(() => {
       const exts = [];
+
       if (lang.extension) exts.push(lang.extension);
       if (settings.autocomplete) exts.push(autocompletion());
+
       exts.push(search({ top: true }));
+
+      /* ---------- indentasi ---------- */
+      const indentStr = settings.indentWithTabs
+         ? '\t'
+         : ' '.repeat(settings.tabSize);
+      exts.push(indentUnit.of(indentStr));
+      exts.push(
+         EditorState.tabSize.of(
+            settings.indentWithTabs ? 1 : settings.tabSize
+         )
+      );
+
+      /* ---------- indent guides + active block highlight ---------- */
+      exts.push(
+         indentationMarkers({
+            highlightActiveBlock: true,
+            hideFirstIndent: false,
+            thickness: 1,
+            colors: {
+               light: 'rgba(0, 0, 0, 0.1)',
+               dark: 'rgba(255, 255, 255, 0.1)',
+               activeLight: 'rgba(0, 0, 0, 0.25)',
+               activeDark: 'rgba(255, 255, 255, 0.25)',
+            },
+         })
+      );
+
       exts.push(
          EditorView.theme({
             '&': {
@@ -62,9 +95,11 @@ export function Editor({
             },
          })
       );
+
       if (settings.lineWrap) {
          exts.push(EditorView.lineWrapping);
       }
+
       return exts;
    }, [lang.extension, settings, fontFamily]);
 
@@ -126,12 +161,6 @@ export function Editor({
    }, []);
 
    useEffect(() => {
-      viewRef.current?.dispatch({
-         effects: [],
-      });
-   }, [file.readOnly]);
-
-   useEffect(() => {
       setCursor({ line: 1, col: 1 });
    }, [file.id]);
 
@@ -168,7 +197,7 @@ export function Editor({
                   height="100%"
                   theme={codeMirrorTheme}
                   extensions={extensions}
-                  editable={!file.readOnly}
+                  editable={true}
                   onChange={onChange}
                   onUpdate={handleUpdate}
                   onCreateEditor={(view) => {

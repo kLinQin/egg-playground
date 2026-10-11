@@ -10,6 +10,8 @@ const DEFAULTS: EditorSettings = {
    lineWrap: false,
    autocomplete: true,
    editorTheme: 'auto',
+   tabSize: 2,
+   indentWithTabs: false,
 };
 
 function read(): EditorSettings {

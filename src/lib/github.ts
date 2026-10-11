@@ -233,7 +233,7 @@ export async function pullRepo(config: GitConfig): Promise<PullResult> {
    }
 }
 
-/* ===================== Push ===================== */
+/* ===================== Push (multi-file, single commit) ===================== */
 
 export type PushFile = {
    path: string;
@@ -244,31 +244,9 @@ export type PushResult =
    | {
       ok: true;
       pushed: number;
-      failed: number;
-      errors: string[];
+      commitSha: string;
    }
    | { ok: false; message: string };
-
-async function getFileSha(
-   octokit: Octokit,
-   config: GitConfig,
-   path: string
-): Promise<string | undefined> {
-   try {
-      const { data } = await octokit.rest.repos.getContent({
-         owner: config.owner,
-         repo: config.repo,
-         path,
-         ref: config.branch,
-      });
-      if (!Array.isArray(data) && 'sha' in data) {
-         return data.sha;
-      }
-      return undefined;
-   } catch {
-      return undefined;
-   }
-}
 
 export async function pushFiles(
    config: GitConfig,
@@ -281,32 +259,73 @@ export async function pushFiles(
 
    try {
       const octokit = createOctokit(config);
-      let pushed = 0;
-      let failed = 0;
-      const errors: string[] = [];
 
-      for (const file of files) {
-         try {
-            const sha = await getFileSha(octokit, config, file.path);
-            await octokit.rest.repos.createOrUpdateFileContents({
+      /* ---------- 1. Ambil ref branch saat ini ---------- */
+      const { data: ref } = await octokit.rest.git.getRef({
+         owner: config.owner,
+         repo: config.repo,
+         ref: `heads/${config.branch}`,
+      });
+
+      const baseCommitSha = ref.object.sha;
+
+      /* ---------- 2. Ambil commit terakhir untuk dapat base tree ---------- */
+      const { data: baseCommit } = await octokit.rest.git.getCommit({
+         owner: config.owner,
+         repo: config.repo,
+         commit_sha: baseCommitSha,
+      });
+
+      const baseTreeSha = baseCommit.tree.sha;
+
+      /* ---------- 3. Buat blob untuk setiap file ---------- */
+      const blobs = await Promise.all(
+         files.map(async (file) => {
+            const { data: blob } = await octokit.rest.git.createBlob({
                owner: config.owner,
                repo: config.repo,
-               path: file.path,
-               message: commitMessage,
                content: encodeBase64Utf8(file.content),
-               branch: config.branch,
-               ...(sha ? { sha } : {}),
+               encoding: 'base64',
             });
-            pushed += 1;
-         } catch (err: unknown) {
-            failed += 1;
-            const msg =
-               err instanceof Error ? err.message : 'Unknown error';
-            errors.push(`${file.path}: ${msg}`);
-         }
-      }
+            return { path: file.path, sha: blob.sha };
+         })
+      );
 
-      return { ok: true, pushed, failed, errors };
+      /* ---------- 4. Buat tree baru (menggabungkan base tree + blob baru) ---------- */
+      const { data: newTree } = await octokit.rest.git.createTree({
+         owner: config.owner,
+         repo: config.repo,
+         base_tree: baseTreeSha,
+         tree: blobs.map((b) => ({
+            path: b.path,
+            mode: '100644' as const,
+            type: 'blob' as const,
+            sha: b.sha,
+         })),
+      });
+
+      /* ---------- 5. Buat commit baru yang menunjuk tree baru ---------- */
+      const { data: newCommit } = await octokit.rest.git.createCommit({
+         owner: config.owner,
+         repo: config.repo,
+         message: commitMessage,
+         tree: newTree.sha,
+         parents: [baseCommitSha],
+      });
+
+      /* ---------- 6. Update branch ke commit baru ---------- */
+      await octokit.rest.git.updateRef({
+         owner: config.owner,
+         repo: config.repo,
+         ref: `heads/${config.branch}`,
+         sha: newCommit.sha,
+      });
+
+      return {
+         ok: true,
+         pushed: files.length,
+         commitSha: newCommit.sha,
+      };
    } catch (err: unknown) {
       const message =
          err instanceof Error ? err.message : 'Gagal push ke repository.';

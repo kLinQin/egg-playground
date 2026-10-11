@@ -2,30 +2,59 @@ import { useEffect, useState } from 'react';
 import type { FileItem } from '../types';
 
 const FILES_KEY = 'webden-files';
-const ACTIVE_KEY = 'webden-active-file-id';
+
+/* ---------- migrasi data lama ---------- */
+type LegacyFile = {
+   id: string;
+   name: string;
+   content: string;
+   saved?: boolean;
+   readOnly?: boolean;
+   savedContent?: string;
+   isNew?: boolean;
+};
+
+function migrateFile(raw: LegacyFile): FileItem {
+   /* sudah format baru? */
+   if (
+      typeof raw.savedContent === 'string' &&
+      typeof raw.isNew === 'boolean'
+   ) {
+      return {
+         id: raw.id,
+         name: raw.name,
+         content: raw.content,
+         savedContent: raw.savedContent,
+         isNew: raw.isNew,
+      };
+   }
+
+   /* migrasi dari format lama:
+      - kalau `saved: true` → savedContent = content
+      - kalau `saved: false` → savedContent = '' (anggap belum pernah di-save) */
+   return {
+      id: raw.id,
+      name: raw.name,
+      content: raw.content,
+      savedContent: raw.saved ? raw.content : '',
+      isNew: true,
+   };
+}
 
 function readFiles(): FileItem[] {
    try {
       const raw = localStorage.getItem(FILES_KEY);
       if (!raw) return [];
-      const parsed = JSON.parse(raw) as FileItem[];
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((f) => migrateFile(f as LegacyFile));
    } catch {
       return [];
    }
 }
 
-function readActiveId(): string | null {
-   try {
-      return localStorage.getItem(ACTIVE_KEY);
-   } catch {
-      return null;
-   }
-}
-
 export function useFileStorage() {
    const [files, setFiles] = useState<FileItem[]>(readFiles);
-   const [activeId, setActiveId] = useState<string | null>(readActiveId);
 
    /* persist files */
    useEffect(() => {
@@ -36,35 +65,14 @@ export function useFileStorage() {
       }
    }, [files]);
 
-   /* persist activeId */
-   useEffect(() => {
-      try {
-         if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
-         else localStorage.removeItem(ACTIVE_KEY);
-      } catch {
-         // ignore
-      }
-   }, [activeId]);
-
-   /* kalau activeId tidak ada di files, reset */
-   useEffect(() => {
-      if (activeId && !files.some((f) => f.id === activeId)) {
-         setActiveId(files[0]?.id ?? null);
-      }
-   }, [files, activeId]);
-
    const clearAll = () => {
       setFiles([]);
-      setActiveId(null);
       localStorage.removeItem(FILES_KEY);
-      localStorage.removeItem(ACTIVE_KEY);
    };
 
    return {
       files,
       setFiles,
-      activeId,
-      setActiveId,
       clearAll,
    };
 }

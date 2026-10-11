@@ -16,8 +16,15 @@ import {
    GitCommit,
    ExternalLink,
    RefreshCw,
+   Plus,
+   Minus,
+   Undo2,
+   FileEdit,
+   FilePlus,
+   FileMinus,
+   Settings,
 } from 'lucide-react';
-import type { GitConfig, GitStatus } from '../types';
+import type { GitConfig, GitStatus, ChangeItem } from '../types';
 import {
    verifyToken,
    loginWithDeviceFlow,
@@ -41,6 +48,15 @@ type Props = {
    onPull: (config: GitConfig) => void;
    onPush: (config: GitConfig, commitMessage: string) => void;
    onClearAll: () => void;
+
+   /* ---------- changes ---------- */
+   changes: ChangeItem[];
+   onStage: (fileId: string) => void;
+   onUnstage: (fileId: string) => void;
+   onRestore: (fileId: string) => void;
+   onStageAll: () => void;
+   onUnstageAll: () => void;
+   onRestoreAll: () => void;
 };
 
 type DeviceState =
@@ -192,6 +208,20 @@ function Dropdown({
    );
 }
 
+/* ===================== Change status helpers ===================== */
+
+function statusLabel(status: ChangeItem['status']): string {
+   if (status === 'added') return 'A';
+   if (status === 'deleted') return 'D';
+   return 'M';
+}
+
+function StatusIcon({ status }: { status: ChangeItem['status'] }) {
+   if (status === 'added') return <FilePlus size={14} />;
+   if (status === 'deleted') return <FileMinus size={14} />;
+   return <FileEdit size={14} />;
+}
+
 /* ===================== GitPanel ===================== */
 
 export function GitPanel({
@@ -200,6 +230,13 @@ export function GitPanel({
    onPull,
    onPush,
    onClearAll,
+   changes,
+   onStage,
+   onUnstage,
+   onRestore,
+   onStageAll,
+   onUnstageAll,
+   onRestoreAll,
 }: Props) {
    const {
       token,
@@ -213,7 +250,7 @@ export function GitPanel({
       clearAll: clearGitAuth,
    } = useGitAuth();
 
-   const [commitMessage, setCommitMessage] = useState('Update from WebDen');
+   const [commitMessage, setCommitMessage] = useState('Update from Eggs');
 
    const [verifyState, setVerifyState] = useState<
       | { state: 'idle' }
@@ -241,10 +278,20 @@ export function GitPanel({
    const [commitsLoading, setCommitsLoading] = useState(false);
    const [commitsError, setCommitsError] = useState<string | null>(null);
 
+   /* ---------- view mode ---------- */
+   const [configOpen, setConfigOpen] = useState(false);
+
    const config: GitConfig = { token, owner, repo, branch };
    const isBusy = status.state === 'busy';
    const canAct = !!token && !!owner && !!repo && !!branch && !isBusy;
    const canVerify = !!token && verifyState.state !== 'busy';
+
+   const stagedChanges = changes.filter((c) => c.staged);
+   const unstagedChanges = changes.filter((c) => !c.staged);
+   const hasStaged = stagedChanges.length > 0;
+
+   /* ---------- paksa config view kalau belum lengkap ---------- */
+   const showConfig = !canAct || configOpen;
 
    const fetchOwners = async (t: string) => {
       setOwnersLoading(true);
@@ -391,6 +438,13 @@ export function GitPanel({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token, owner, repo, branch]);
 
+   /* ---------- auto-close config saat sudah lengkap ---------- */
+   useEffect(() => {
+      if (canAct && configOpen) {
+         /* biarkan user tutup manual — jangan auto-close */
+      }
+   }, [canAct, configOpen]);
+
    const handleVerify = async () => {
       setVerifyState({ state: 'busy' });
       const result = await verifyToken(config);
@@ -462,6 +516,7 @@ export function GitPanel({
       setCommitsError(null);
       setVerifyState({ state: 'idle' });
       setDeviceState({ state: 'idle' });
+      setConfigOpen(false);
       onClearAll();
    };
 
@@ -489,302 +544,424 @@ export function GitPanel({
       <div className="git-panel">
          <div className="git-panel__header">
             <span className="git-panel__title">Git</span>
+
+            {canAct && (
+               <button
+                  className={`icon-btn ${configOpen ? 'icon-btn--active' : ''}`}
+                  onClick={() => setConfigOpen((v) => !v)}
+                  title={configOpen ? 'Tampilkan panel utama' : 'Buka settings Git'}
+               >
+                  <Settings size={16} />
+               </button>
+            )}
+
             <button className="icon-btn" onClick={onClose} title="Tutup">
                <X size={16} />
             </button>
          </div>
 
-         {/* ===================== Config section (scroll sendiri) ===================== */}
-         <div className="git-panel__scroll">
-            {deviceState.state === 'idle' && !token && (
-               <button className="btn" onClick={handleLogin}>
-                  <LogIn size={14} /> Login dengan GitHub
-               </button>
-            )}
-
-            {deviceState.state === 'waiting' && (
-               <div className="device-flow">
-                  <p className="device-flow__instruction">
-                     Buka{' '}
-                     <a
-                        href={deviceState.verificationUri}
-                        target="_blank"
-                        rel="noreferrer"
-                     >
-                        {deviceState.verificationUri}
-                     </a>{' '}
-                     dan masukkan kode:
-                  </p>
-                  <div className="device-flow__code">
-                     <code>{deviceState.userCode}</code>
-                     <button className="icon-btn" onClick={copyCode} title="Copy">
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                     </button>
-                  </div>
-                  <p className="device-flow__hint">
-                     <Loader2 size={12} className="spin" /> Menunggu otorisasi...
-                  </p>
-               </div>
-            )}
-
-            {deviceState.state === 'error' && (
-               <div className="git-verify git-verify--error">
-                  {deviceState.message}
-               </div>
-            )}
-
-            {!token && (
-               <label className="field">
-                  <span>Token (PAT) — atau login di atas</span>
-                  <input
-                     type="password"
-                     value={token}
-                     onChange={(e) => {
-                        setToken(e.target.value);
-                        setVerifyState({ state: 'idle' });
-                     }}
-                     placeholder="ghp_..."
-                     autoComplete="off"
-                  />
-               </label>
-            )}
-
-            {token && (
-               <div className="field">
-                  <span>Token</span>
-                  <div className="token-display">
-                     <code>
-                        {token.slice(0, 8)}...{token.slice(-4)}
-                     </code>
-                     <button
-                        className="icon-btn"
-                        onClick={handleLogout}
-                        title="Hapus token"
-                     >
-                        <X size={14} />
-                     </button>
-                  </div>
-               </div>
-            )}
-
-            <button
-               className="btn"
-               disabled={!canVerify}
-               onClick={handleVerify}
-            >
-               {verifyState.state === 'busy' ? (
-                  <>
-                     <Loader2 size={14} className="spin" /> Memverifikasi...
-                  </>
-               ) : (
-                  <>
-                     <ShieldCheck size={14} /> Test Connection
-                  </>
-               )}
-            </button>
-
-            {verifyState.state === 'ok' && (
-               <div className="git-verify git-verify--ok">
-                  <img
-                     src={verifyState.avatarUrl}
-                     alt={verifyState.login}
-                     className="git-verify__avatar"
-                  />
-                  <span className="git-verify__text">
-                     Terhubung sebagai <strong>{verifyState.login}</strong>
-                  </span>
-                  <button
-                     className="icon-btn git-verify__logout"
-                     onClick={handleLogout}
-                     title="Logout"
-                  >
-                     <LogOut size={14} />
+         {/* ===================== CONFIG VIEW ===================== */}
+         {showConfig && (
+            <div className="git-panel__scroll">
+               {deviceState.state === 'idle' && !token && (
+                  <button className="btn" onClick={handleLogin}>
+                     <LogIn size={14} /> Login dengan GitHub
                   </button>
-               </div>
-            )}
+               )}
 
-            {verifyState.state === 'error' && (
-               <div className="git-verify git-verify--error">
-                  {verifyState.message}
-               </div>
-            )}
+               {deviceState.state === 'waiting' && (
+                  <div className="device-flow">
+                     <p className="device-flow__instruction">
+                        Buka{' '}
+                        <a
+                           href={deviceState.verificationUri}
+                           target="_blank"
+                           rel="noreferrer"
+                        >
+                           {deviceState.verificationUri}
+                        </a>{' '}
+                        dan masukkan kode:
+                     </p>
+                     <div className="device-flow__code">
+                        <code>{deviceState.userCode}</code>
+                        <button className="icon-btn" onClick={copyCode} title="Copy">
+                           {copied ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                     </div>
+                     <p className="device-flow__hint">
+                        <Loader2 size={12} className="spin" /> Menunggu otorisasi...
+                     </p>
+                  </div>
+               )}
 
-            <div className="field">
-               <span>Owner</span>
-               <Dropdown
-                  value={owner}
-                  placeholder={owners.length === 0 ? 'Login dulu' : 'Pilih owner'}
-                  options={ownerOptions}
-                  onSelect={(v) => {
-                     setOwner(v);
-                     const found = owners.find((o) => o.login === v);
-                     setOwnerType(found?.type ?? 'user');
-                     setRepo('');
-                     setBranch('');
-                     setRepos([]);
-                     setBranches([]);
-                     setCommits([]);
-                  }}
-                  disabled={owners.length === 0}
-                  loading={ownersLoading}
-               />
-            </div>
+               {deviceState.state === 'error' && (
+                  <div className="git-verify git-verify--error">
+                     {deviceState.message}
+                  </div>
+               )}
 
-            <div className="field">
-               <span>Repo</span>
-               <Dropdown
-                  value={repo}
-                  placeholder={
-                     !owner
-                        ? 'Pilih owner dulu'
-                        : reposLoading
-                           ? 'Memuat...'
-                           : 'Pilih repo'
-                  }
-                  options={repoOptions}
-                  onSelect={(v) => {
-                     setRepo(v);
-                     setBranch('');
-                     setBranches([]);
-                     setCommits([]);
-                  }}
-                  disabled={!owner || repos.length === 0}
-                  loading={reposLoading}
-                  searchable
-               />
-            </div>
+               {!token && (
+                  <label className="field">
+                     <span>Token (PAT) — atau login di atas</span>
+                     <input
+                        type="password"
+                        value={token}
+                        onChange={(e) => {
+                           setToken(e.target.value);
+                           setVerifyState({ state: 'idle' });
+                        }}
+                        placeholder="ghp_..."
+                        autoComplete="off"
+                     />
+                  </label>
+               )}
 
-            <div className="field">
-               <span>Branch</span>
-               <Dropdown
-                  value={branch}
-                  placeholder={
-                     !repo
-                        ? 'Pilih repo dulu'
-                        : branchesLoading
-                           ? 'Memuat...'
-                           : 'Pilih branch'
-                  }
-                  options={branchOptions}
-                  onSelect={(v) => {
-                     setBranch(v);
-                     setCommits([]);
-                  }}
-                  disabled={!repo || branches.length === 0}
-                  loading={branchesLoading}
-               />
-            </div>
+               {token && (
+                  <div className="field">
+                     <span>Token</span>
+                     <div className="token-display">
+                        <code>
+                           {token.slice(0, 8)}...{token.slice(-4)}
+                        </code>
+                        <button
+                           className="icon-btn"
+                           onClick={handleLogout}
+                           title="Hapus token"
+                        >
+                           <X size={14} />
+                        </button>
+                     </div>
+                  </div>
+               )}
 
-            <label className="field">
-               <span>Commit message</span>
-               <input
-                  value={commitMessage}
-                  onChange={(e) => setCommitMessage(e.target.value)}
-                  placeholder="Update from WebDen"
-               />
-            </label>
-
-            <div className="git-panel__actions">
                <button
                   className="btn"
-                  disabled={!canAct}
-                  onClick={() => onPull(config)}
+                  disabled={!canVerify}
+                  onClick={handleVerify}
                >
-                  <ArrowDown size={14} /> Pull
+                  {verifyState.state === 'busy' ? (
+                     <>
+                        <Loader2 size={14} className="spin" /> Memverifikasi...
+                     </>
+                  ) : (
+                     <>
+                        <ShieldCheck size={14} /> Test Connection
+                     </>
+                  )}
                </button>
-               <button
-                  className="btn btn--primary"
-                  disabled={!canAct || !commitMessage.trim()}
-                  onClick={() => onPush(config, commitMessage.trim())}
-               >
-                  <ArrowUp size={14} /> Push
-               </button>
-            </div>
 
-            <div className="git-panel__hint">
-               <KeyRound size={12} />
-               <span>Token disimpan di localStorage — hilang saat Logout.</span>
-            </div>
-         </div>
+               {verifyState.state === 'ok' && (
+                  <div className="git-verify git-verify--ok">
+                     <img
+                        src={verifyState.avatarUrl}
+                        alt={verifyState.login}
+                        className="git-verify__avatar"
+                     />
+                     <span className="git-verify__text">
+                        Terhubung sebagai <strong>{verifyState.login}</strong>
+                     </span>
+                     <button
+                        className="icon-btn git-verify__logout"
+                        onClick={handleLogout}
+                        title="Logout"
+                     >
+                        <LogOut size={14} />
+                     </button>
+                  </div>
+               )}
 
-         {/* ===================== Commit history (scroll sendiri) ===================== */}
-         {canAct && (
-            <div className="commit-history">
-               <div className="commit-history__header">
-                  <GitCommit size={14} />
-                  <span className="commit-history__title">History</span>
+               {verifyState.state === 'error' && (
+                  <div className="git-verify git-verify--error">
+                     {verifyState.message}
+                  </div>
+               )}
+
+               <div className="field">
+                  <span>Owner</span>
+                  <Dropdown
+                     value={owner}
+                     placeholder={owners.length === 0 ? 'Login dulu' : 'Pilih owner'}
+                     options={ownerOptions}
+                     onSelect={(v) => {
+                        setOwner(v);
+                        const found = owners.find((o) => o.login === v);
+                        setOwnerType(found?.type ?? 'user');
+                        setRepo('');
+                        setBranch('');
+                        setRepos([]);
+                        setBranches([]);
+                        setCommits([]);
+                     }}
+                     disabled={owners.length === 0}
+                     loading={ownersLoading}
+                  />
+               </div>
+
+               <div className="field">
+                  <span>Repo</span>
+                  <Dropdown
+                     value={repo}
+                     placeholder={
+                        !owner
+                           ? 'Pilih owner dulu'
+                           : reposLoading
+                              ? 'Memuat...'
+                              : 'Pilih repo'
+                     }
+                     options={repoOptions}
+                     onSelect={(v) => {
+                        setRepo(v);
+                        setBranch('');
+                        setBranches([]);
+                        setCommits([]);
+                     }}
+                     disabled={!owner || repos.length === 0}
+                     loading={reposLoading}
+                     searchable
+                  />
+               </div>
+
+               <div className="field">
+                  <span>Branch</span>
+                  <Dropdown
+                     value={branch}
+                     placeholder={
+                        !repo
+                           ? 'Pilih repo dulu'
+                           : branchesLoading
+                              ? 'Memuat...'
+                              : 'Pilih branch'
+                     }
+                     options={branchOptions}
+                     onSelect={(v) => {
+                        setBranch(v);
+                        setCommits([]);
+                     }}
+                     disabled={!repo || branches.length === 0}
+                     loading={branchesLoading}
+                  />
+               </div>
+
+               {canAct && (
                   <button
-                     className="icon-btn"
-                     onClick={handleRefreshCommits}
-                     disabled={commitsLoading}
-                     title="Refresh"
+                     className="btn btn--primary"
+                     onClick={() => setConfigOpen(false)}
                   >
-                     {commitsLoading ? (
-                        <Loader2 size={12} className="spin" />
-                     ) : (
-                        <RefreshCw size={12} />
-                     )}
+                     Selesai — Tampilkan Panel
                   </button>
-               </div>
+               )}
 
-               <div className="commit-history__body">
-                  {commitsError && (
-                     <div className="commit-history__error">{commitsError}</div>
-                  )}
-
-                  {!commitsError && commits.length === 0 && !commitsLoading && (
-                     <div className="commit-history__empty">
-                        Belum ada commit.
-                     </div>
-                  )}
-
-                  {commits.length > 0 && (
-                     <ul className="commit-history__list">
-                        {commits.map((c) => (
-                           <li key={c.sha} className="commit-item">
-                              {c.authorAvatarUrl ? (
-                                 <img
-                                    src={c.authorAvatarUrl}
-                                    alt={c.authorName}
-                                    className="commit-item__avatar"
-                                 />
-                              ) : (
-                                 <div className="commit-item__avatar commit-item__avatar--fallback">
-                                    {c.authorName.charAt(0).toUpperCase()}
-                                 </div>
-                              )}
-
-                              <div className="commit-item__body">
-                                 <div
-                                    className="commit-item__message"
-                                    title={c.message}
-                                 >
-                                    {c.message}
-                                 </div>
-                                 <div className="commit-item__meta">
-                                    <span>{c.authorLogin ?? c.authorName}</span>
-                                    <span>·</span>
-                                    <span>{relativeTime(c.date)}</span>
-                                    <span>·</span>
-                                    <code>{c.shaShort}</code>
-                                 </div>
-                              </div>
-
-                              <a
-                                 href={c.htmlUrl}
-                                 target="_blank"
-                                 rel="noreferrer"
-                                 className="icon-btn commit-item__link"
-                                 title="Buka di GitHub"
-                              >
-                                 <ExternalLink size={12} />
-                              </a>
-                           </li>
-                        ))}
-                     </ul>
-                  )}
+               <div className="git-panel__hint">
+                  <KeyRound size={12} />
+                  <span>Token disimpan di localStorage — hilang saat Logout.</span>
                </div>
             </div>
+         )}
+
+         {/* ===================== MAIN VIEW ===================== */}
+         {!showConfig && (
+            <>
+               {/* ---------- Commit + Pull/Push ---------- */}
+               <div className="git-panel__actions-section">
+                  <label className="field">
+                     <span>Commit message</span>
+                     <input
+                        value={commitMessage}
+                        onChange={(e) => setCommitMessage(e.target.value)}
+                        placeholder="Update from Eggs"
+                     />
+                  </label>
+
+                  <div className="git-panel__actions">
+                     <button
+                        className="btn"
+                        disabled={!canAct}
+                        onClick={() => onPull(config)}
+                     >
+                        <ArrowDown size={14} /> Pull
+                     </button>
+                     <button
+                        className="btn btn--primary"
+                        disabled={!canAct || !commitMessage.trim() || !hasStaged}
+                        onClick={() => onPush(config, commitMessage.trim())}
+                        title={
+                           !hasStaged
+                              ? 'Tidak ada file yang di-stage'
+                              : 'Push file yang di-stage'
+                        }
+                     >
+                        <ArrowUp size={14} /> Push
+                     </button>
+                  </div>
+               </div>
+
+               {/* ---------- Changes ---------- */}
+               <div className="changes">
+                  <div className="changes__header">
+                     <span className="changes__title">
+                        Changes ({changes.length})
+                     </span>
+                     <div className="changes__actions">
+                        {unstagedChanges.length > 0 && (
+                           <button
+                              className="icon-btn"
+                              onClick={onStageAll}
+                              title="Stage semua"
+                           >
+                              <Plus size={14} />
+                           </button>
+                        )}
+                        {stagedChanges.length > 0 && (
+                           <button
+                              className="icon-btn"
+                              onClick={onUnstageAll}
+                              title="Unstage semua"
+                           >
+                              <Minus size={14} />
+                           </button>
+                        )}
+                        {changes.length > 0 && (
+                           <button
+                              className="icon-btn"
+                              onClick={onRestoreAll}
+                              title="Restore semua"
+                           >
+                              <Undo2 size={14} />
+                           </button>
+                        )}
+                     </div>
+                  </div>
+
+                  <div className="changes__body">
+                     {changes.length === 0 && (
+                        <div className="changes__empty">
+                           Tidak ada perubahan.
+                        </div>
+                     )}
+
+                     {changes.map((c) => (
+                        <div key={c.file.id} className="change-item">
+                           <span
+                              className={`change-item__status change-item__status--${c.status}`}
+                              title={c.status}
+                           >
+                              {statusLabel(c.status)}
+                           </span>
+
+                           <StatusIcon status={c.status} />
+
+                           <span className="change-item__name" title={c.file.name}>
+                              {c.file.name}
+                           </span>
+
+                           {c.staged ? (
+                              <button
+                                 className="icon-btn change-item__action"
+                                 onClick={() => onUnstage(c.file.id)}
+                                 title="Unstage"
+                              >
+                                 <Minus size={14} />
+                              </button>
+                           ) : (
+                              <button
+                                 className="icon-btn change-item__action"
+                                 onClick={() => onStage(c.file.id)}
+                                 title="Stage"
+                              >
+                                 <Plus size={14} />
+                              </button>
+                           )}
+
+                           <button
+                              className="icon-btn change-item__action"
+                              onClick={() => onRestore(c.file.id)}
+                              title="Restore"
+                           >
+                              <Undo2 size={14} />
+                           </button>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* ---------- History ---------- */}
+               <div className="commit-history">
+                  <div className="commit-history__header">
+                     <GitCommit size={14} />
+                     <span className="commit-history__title">History</span>
+                     <button
+                        className="icon-btn"
+                        onClick={handleRefreshCommits}
+                        disabled={commitsLoading}
+                        title="Refresh"
+                     >
+                        {commitsLoading ? (
+                           <Loader2 size={12} className="spin" />
+                        ) : (
+                           <RefreshCw size={12} />
+                        )}
+                     </button>
+                  </div>
+
+                  <div className="commit-history__body">
+                     {commitsError && (
+                        <div className="commit-history__error">{commitsError}</div>
+                     )}
+
+                     {!commitsError && commits.length === 0 && !commitsLoading && (
+                        <div className="commit-history__empty">
+                           Belum ada commit.
+                        </div>
+                     )}
+
+                     {commits.length > 0 && (
+                        <ul className="commit-history__list">
+                           {commits.map((c) => (
+                              <li key={c.sha} className="commit-item">
+                                 {c.authorAvatarUrl ? (
+                                    <img
+                                       src={c.authorAvatarUrl}
+                                       alt={c.authorName}
+                                       className="commit-item__avatar"
+                                    />
+                                 ) : (
+                                    <div className="commit-item__avatar commit-item__avatar--fallback">
+                                       {c.authorName.charAt(0).toUpperCase()}
+                                    </div>
+                                 )}
+
+                                 <div className="commit-item__body">
+                                    <div
+                                       className="commit-item__message"
+                                       title={c.message}
+                                    >
+                                       {c.message}
+                                    </div>
+                                    <div className="commit-item__meta">
+                                       <span>{c.authorLogin ?? c.authorName}</span>
+                                       <span>·</span>
+                                       <span>{relativeTime(c.date)}</span>
+                                       <span>·</span>
+                                       <code>{c.shaShort}</code>
+                                    </div>
+                                 </div>
+
+                                 <a
+                                    href={c.htmlUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="icon-btn commit-item__link"
+                                    title="Buka di GitHub"
+                                 >
+                                    <ExternalLink size={12} />
+                                 </a>
+                              </li>
+                           ))}
+                        </ul>
+                     )}
+                  </div>
+               </div>
+            </>
          )}
 
          {status.state !== 'idle' && (

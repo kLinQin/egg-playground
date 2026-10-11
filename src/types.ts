@@ -2,10 +2,18 @@ export type FileItem = {
    id: string;
    name: string;
    content: string;
-   /** konten sudah di-save? */
-   saved: boolean;
-   /** read-only saat saved === true dan user belum klik Edit */
-   readOnly: boolean;
+   /** konten terakhir yang di-save — untuk deteksi perubahan & restore */
+   savedContent: string;
+   /** true kalau belum pernah di-push ke GitHub */
+   isNew: boolean;
+};
+
+export type FileStatus = 'modified' | 'added' | 'deleted';
+
+export type ChangeItem = {
+   file: FileItem;
+   status: FileStatus;
+   staged: boolean;
 };
 
 export type TabsState = {
@@ -71,4 +79,8 @@ export type EditorSettings = {
    lineWrap: boolean;
    autocomplete: boolean;
    editorTheme: EditorTheme;
+   /** jumlah spasi untuk satu tingkat indentasi */
+   tabSize: number;
+   /** pakai tab char (true) atau spasi (false) */
+   indentWithTabs: boolean;
 };
