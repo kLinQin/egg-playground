@@ -13,9 +13,17 @@ import {
    findNext,
    findPrevious,
 } from '@codemirror/search';
+import { forEachDiagnostic } from '@codemirror/lint';
+import { diffLines } from 'diff';
 import type { FileItem, Theme, EditorSettings } from '../types';
 import { getLanguage } from '../languages';
 import { getEditorTheme } from '../editorThemes';
+import { lintExtensions } from '../editorLint';
+import {
+   lineChangeGutter,
+   applyLineChanges,
+   type LineChange,
+} from '../editorGutter';
 import { EditorStatusBar } from './EditorStatusBar';
 import { MarkdownPreview } from './MarkdownPreview';
 
@@ -27,6 +35,38 @@ type Props = {
    previewOpen: boolean;
    onChange: (content: string) => void;
 };
+
+/** Hitung baris added/modified dari savedContent vs content. */
+function computeLineChanges(
+   savedContent: string,
+   content: string
+): LineChange[] {
+   if (savedContent === content) return [];
+
+   const parts = diffLines(savedContent, content);
+   const changes: LineChange[] = [];
+   let lineNo = 1;
+
+   for (const part of parts) {
+      const lineCount = part.count ?? 0;
+
+      if (part.added) {
+         // baris baru — tandai hijau
+         for (let i = 0; i < lineCount; i++) {
+            changes.push({ line: lineNo + i, type: 'added' });
+         }
+         lineNo += lineCount;
+      } else if (part.removed) {
+         // baris dihapus — tidak ada di dokumen, skip
+         // (tidak menambah lineNo karena baris sudah tidak ada)
+      } else {
+         // baris tidak berubah — majukan lineNo
+         lineNo += lineCount;
+      }
+   }
+
+   return changes;
+}
 
 export function Editor({
    file,
@@ -41,7 +81,7 @@ export function Editor({
    const cmRef = useRef<ReactCodeMirrorRef>(null);
 
    const [cursor, setCursor] = useState({ line: 1, col: 1 });
-
+   const [lintCount, setLintCount] = useState({ errors: 0, warnings: 0 });
 
    const extensions = useMemo(() => {
       const exts = [];
@@ -50,6 +90,12 @@ export function Editor({
       if (settings.autocomplete) exts.push(autocompletion());
 
       exts.push(search({ top: true }));
+
+      /* ---------- linting ---------- */
+      exts.push(...lintExtensions());
+
+      /* ---------- git-like gutter ---------- */
+      exts.push(lineChangeGutter());
 
       /* ---------- indentasi ---------- */
       const indentStr = settings.indentWithTabs
@@ -164,6 +210,35 @@ export function Editor({
       setCursor({ line: 1, col: 1 });
    }, [file.id]);
 
+   /* hitung diagnostic setiap file berubah / edit */
+   useEffect(() => {
+      const view = viewRef.current;
+      if (!view) return;
+
+      const count = () => {
+         let errors = 0;
+         let warnings = 0;
+         forEachDiagnostic(view.state, (d) => {
+            if (d.severity === 'error') errors += 1;
+            else if (d.severity === 'warning') warnings += 1;
+         });
+         setLintCount({ errors, warnings });
+      };
+
+      count();
+      const id = window.setInterval(count, 800);
+      return () => window.clearInterval(id);
+   }, [file.id, file.content]);
+
+   /* hitung line changes (added/modified) → kirim ke gutter */
+   useEffect(() => {
+      const view = viewRef.current;
+      if (!view) return;
+
+      const changes = computeLineChanges(file.savedContent, file.content);
+      applyLineChanges(view, changes);
+   }, [file.id, file.content, file.savedContent]);
+
    const codeMirrorTheme = useMemo(() => {
       const t = getEditorTheme(settings.editorTheme);
       if (t.extension) return t.extension;
@@ -222,6 +297,8 @@ export function Editor({
             language={lang.label}
             lineCount={lineCount}
             charCount={charCount}
+            errors={lintCount.errors}
+            warnings={lintCount.warnings}
          />
       </>
    );

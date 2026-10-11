@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { marked } from 'marked';
+import { markedHighlight } from 'marked-highlight';
+import hljs from 'highlight.js';
 import DOMPurify from 'dompurify';
 
 type Props = {
@@ -8,6 +10,28 @@ type Props = {
    fontSize?: number;
    lineHeight?: number;
 };
+
+/* ---------- konfigurasi highlight.js + marked ---------- */
+marked.use(
+   markedHighlight({
+      langPrefix: 'hljs language-',
+      highlight(code, lang) {
+         // kalau bahasa dikenal → highlight; kalau tidak → auto-detect
+         if (lang && hljs.getLanguage(lang)) {
+            try {
+               return hljs.highlight(code, { language: lang }).value;
+            } catch {
+               // fallback ke auto
+            }
+         }
+         try {
+            return hljs.highlightAuto(code).value;
+         } catch {
+            return code;
+         }
+      },
+   })
+);
 
 marked.setOptions({
    gfm: true,
@@ -24,7 +48,7 @@ export function MarkdownPreview({
    const html = useMemo(() => {
       const raw = marked.parse(content, { async: false }) as string;
       return DOMPurify.sanitize(raw, {
-         ADD_ATTR: ['target', 'rel'],
+         ADD_ATTR: ['target', 'rel', 'class'],
       });
    }, [content]);
 

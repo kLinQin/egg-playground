@@ -4,6 +4,8 @@ type Props = {
    language: string;
    lineCount: number;
    charCount: number;
+   errors?: number;
+   warnings?: number;
 };
 
 export function EditorStatusBar({
@@ -12,7 +14,12 @@ export function EditorStatusBar({
    language,
    lineCount,
    charCount,
+   errors = 0,
+   warnings = 0,
 }: Props) {
+   const hasErrors = errors > 0;
+   const hasWarnings = warnings > 0;
+
    return (
       <div className="status-bar">
          <span className="status-bar__item">
@@ -22,6 +29,22 @@ export function EditorStatusBar({
          <span className="status-bar__sep" />
 
          <span className="status-bar__item">{language}</span>
+
+         {(hasErrors || hasWarnings) && (
+            <>
+               <span className="status-bar__sep" />
+               {hasErrors && (
+                  <span className="status-bar__item status-bar__item--error">
+                     ✕ {errors}
+                  </span>
+               )}
+               {hasWarnings && (
+                  <span className="status-bar__item status-bar__item--warning">
+                     ⚠ {warnings}
+                  </span>
+               )}
+            </>
+         )}
 
          <span className="status-bar__spacer" />
 

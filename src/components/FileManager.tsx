@@ -338,7 +338,7 @@ export function FileManager({
                {chevron}
                {Icon && (
                   <Icon
-                     size={14}
+                     size={12}
                      className="file-item__icon"
                      {...(color ? { style: { color } } : {})}
                   />
@@ -388,7 +388,7 @@ export function FileManager({
                {chevron}
                {Icon && (
                   <Icon
-                     size={14}
+                     size={12}
                      className="file-item__icon"
                      {...(color ? { style: { color } } : {})}
                   />

@@ -68,7 +68,18 @@ export function TabBar({
             {visibleTabs.map((file) => {
                const isActive = file.id === activeTabId;
                const isDirty = file.content !== file.savedContent;
+               const isNew = file.isNew;
                const { Icon, color } = getFileIcon(file.name);
+
+               /* status indicator:
+                  - isNew    → hijau (added)
+                  - isDirty  → kuning (modified), tapi hanya kalau bukan isNew
+               */
+               const indicator = isNew
+                  ? 'added'
+                  : isDirty
+                     ? 'modified'
+                     : null;
 
                return (
                   <div
@@ -85,7 +96,16 @@ export function TabBar({
                      />
                      <span className="tab-item__name">
                         {file.name}
-                        {isDirty && <span className="tab-item__dirty">*</span>}
+                        {indicator === 'modified' && (
+                           <span className="tab-item__dot tab-item__dot--modified">
+                              *
+                           </span>
+                        )}
+                        {indicator === 'added' && (
+                           <span className="tab-item__dot tab-item__dot--added">
+                              *
+                           </span>
+                        )}
                      </span>
                      <button
                         type="button"
