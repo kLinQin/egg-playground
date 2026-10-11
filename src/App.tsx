@@ -20,7 +20,8 @@ import { Editor } from './components/Editor';
 import { TabBar } from './components/TabBar';
 import { GitPanel } from './components/GitPanel';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { pullRepo, pushFiles } from './lib/github';
+import { pullRepo, syncFiles } from './lib/github';
+import type { SyncOperation } from './lib/github';
 import './App.css';
 
 type PendingGitAction =
@@ -29,6 +30,23 @@ type PendingGitAction =
   | null;
 
 const SUCCESS_TIMEOUT = 3000;
+
+/* ---------- helper: path lengkap dari parentId chain ---------- */
+function getFullPath(fileId: string, files: FileItem[]): string {
+  const parts: string[] = [];
+  let currentId: string | null = fileId;
+  const visited = new Set<string>();
+
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId);
+    const f = files.find((x) => x.id === currentId);
+    if (!f) break;
+    parts.unshift(f.name);
+    currentId = f.parentId;
+  }
+
+  return parts.join('/');
+}
 
 function App() {
   const { theme, setTheme } = useTheme();
@@ -53,7 +71,7 @@ function App() {
     setActiveTab,
     closeAllTabs,
     pruneTabs,
-  } = useTabs();
+  } = useTabs(files);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -120,10 +138,29 @@ function App() {
 
   const activeFile = files.find((f) => f.id === activeTabId) ?? null;
 
+  /* ---------- changes — kecualikan folder & file yang dihapus (tombstone) ---------- */
   const changes: ChangeItem[] = useMemo(() => {
     const list: ChangeItem[] = [];
 
     for (const file of files) {
+      /* folder tidak muncul di changes */
+      if (file.kind === 'folder') continue;
+
+      /* file yang di-tombstone (deleted) → tampil sebagai 'deleted' kalau
+         pernah di-push. Kalau belum pernah → skip (tidak muncul di changes) */
+      if (file.deleted) {
+        if (file.lastSyncedPath) {
+          list.push({
+            file,
+            status: 'deleted' as FileStatus,
+            staged: stagedIds.has(file.id),
+            deletePath: file.lastSyncedPath,
+          });
+        }
+        continue;
+      }
+
+      /* file baru — belum pernah di-push */
       if (file.isNew) {
         list.push({
           file,
@@ -133,6 +170,19 @@ function App() {
         continue;
       }
 
+      /* file lama — cek apakah path berubah (rename/move) */
+      const currentPath = getFullPath(file.id, files);
+      if (file.lastSyncedPath && file.lastSyncedPath !== currentPath) {
+        list.push({
+          file,
+          status: 'renamed' as FileStatus,
+          staged: stagedIds.has(file.id),
+          deletePath: file.lastSyncedPath,
+        });
+        continue;
+      }
+
+      /* file lama — cek apakah konten berubah */
       if (file.content !== file.savedContent) {
         list.push({
           file,
@@ -145,7 +195,6 @@ function App() {
     return list;
   }, [files, stagedIds]);
 
-  /* ---------- derived: file yang di-stage ---------- */
   const stagedChanges = useMemo(
     () => changes.filter((c) => c.staged),
     [changes]
@@ -170,9 +219,11 @@ function App() {
     });
   }, [files]);
 
+  /* auto-buka tab pertama — hanya kalau file (bukan folder) */
   useEffect(() => {
     if (tabs.length === 0 && files.length > 0) {
-      openTab(files[0].id);
+      const firstFile = files.find((f) => f.kind === 'file' && !f.deleted);
+      if (firstFile) openTab(firstFile.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -198,6 +249,42 @@ function App() {
     if (isMobile) setFilesOpen(false);
   };
 
+  const handleToggleFolder = (id: string) => {
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === id && f.kind === 'folder'
+          ? { ...f, expanded: !f.expanded }
+          : f
+      )
+    );
+  };
+
+  /* ---------- move file/folder ke folder lain ---------- */
+  const handleMove = (id: string, newParentId: string | null) => {
+    const movingFile = files.find((f) => f.id === id);
+    if (!movingFile) return;
+
+    const conflict = files.some(
+      (f) =>
+        f.id !== id &&
+        f.parentId === newParentId &&
+        f.name.toLowerCase() === movingFile.name.toLowerCase() &&
+        !f.deleted
+    );
+    if (conflict) return;
+
+    setFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, parentId: newParentId } : f))
+    );
+
+    /* hapus dari staged — path berubah */
+    setStagedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
   useKeyboardShortcuts({
     onSave: () => {
       /* no-op */
@@ -210,31 +297,79 @@ function App() {
     },
   });
 
-  const validateName = (name: string, excludeId?: string): string | null => {
+  const validateName = (
+    name: string,
+    parentId: string | null,
+    excludeId?: string
+  ): string | null => {
     if (!name.trim()) return 'Nama tidak boleh kosong.';
     if (name.includes('/') || name.includes('\\'))
       return 'Nama tidak boleh mengandung / atau \\';
     const dup = files.some(
-      (f) => f.id !== excludeId && f.name.toLowerCase() === name.toLowerCase()
+      (f) =>
+        f.id !== excludeId &&
+        f.parentId === parentId &&
+        f.name.toLowerCase() === name.toLowerCase() &&
+        !f.deleted
     );
-    if (dup) return `File "${name}" sudah ada.`;
+    if (dup) return `"${name}" sudah ada di folder ini.`;
     return null;
   };
 
-  const handleCreate = (name: string): string | null => {
-    const err = validateName(name);
+  /* ---------- create file ---------- */
+  const handleCreate = (
+    name: string,
+    parentId: string | null
+  ): string | null => {
+    const err = validateName(name, parentId);
     if (err) return err;
     const id = crypto.randomUUID();
     setFiles((prev) => [
       ...prev,
-      { id, name, content: '', savedContent: '', isNew: true },
+      {
+        id,
+        name,
+        kind: 'file',
+        parentId,
+        content: '',
+        savedContent: '',
+        isNew: true,
+        lastSyncedPath: null,
+      },
     ]);
     openTab(id);
     return null;
   };
 
+  /* ---------- create folder ---------- */
+  const handleCreateFolder = (
+    name: string,
+    parentId: string | null
+  ): string | null => {
+    const err = validateName(name, parentId);
+    if (err) return err;
+    const id = crypto.randomUUID();
+    setFiles((prev) => [
+      ...prev,
+      {
+        id,
+        name,
+        kind: 'folder',
+        parentId,
+        content: '',
+        savedContent: '',
+        isNew: true,
+        expanded: true,
+        lastSyncedPath: null,
+      },
+    ]);
+    return null;
+  };
+
   const handleRename = (id: string, name: string): string | null => {
-    const err = validateName(name, id);
+    const file = files.find((f) => f.id === id);
+    if (!file) return 'File tidak ditemukan.';
+    const err = validateName(name, file.parentId, id);
     if (err) return err;
     setFiles((prev) =>
       prev.map((f) => (f.id === id ? { ...f, name } : f))
@@ -242,12 +377,47 @@ function App() {
     return null;
   };
 
+  /* ---------- delete: tombstone, bukan hapus langsung ---------- */
   const handleConfirmDelete = () => {
     if (!pendingDelete) return;
-    setFiles((prev) => prev.filter((f) => f.id !== pendingDelete.id));
-    if (tabs.includes(pendingDelete.id)) {
-      closeTab(pendingDelete.id);
+
+    const idsToDelete = new Set<string>();
+    const collect = (id: string) => {
+      idsToDelete.add(id);
+      for (const f of files) {
+        if (f.parentId === id) collect(f.id);
+      }
+    };
+    collect(pendingDelete.id);
+
+    setFiles((prev) => {
+      const next: FileItem[] = [];
+      for (const f of prev) {
+        if (!idsToDelete.has(f.id)) {
+          next.push(f);
+          continue;
+        }
+        /* file yang belum pernah di-push → hapus permanen */
+        if (!f.lastSyncedPath) continue;
+        /* file yang sudah pernah di-push → tombstone */
+        next.push({ ...f, deleted: true });
+      }
+      return next;
+    });
+
+    for (const id of idsToDelete) {
+      const file = files.find((f) => f.id === id);
+      if (file && !file.lastSyncedPath && tabs.includes(id)) {
+        closeTab(id);
+      }
     }
+
+    setStagedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of idsToDelete) next.delete(id);
+      return next;
+    });
+
     setPendingDelete(null);
   };
 
@@ -276,11 +446,26 @@ function App() {
     });
   };
 
+  /* ---------- restore: undo perubahan ---------- */
   const handleRestore = (fileId: string) => {
     const file = files.find((f) => f.id === fileId);
     if (!file) return;
 
-    if (file.isNew) {
+    if (file.deleted) {
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId ? { ...f, deleted: false } : f
+        )
+      );
+      setStagedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(fileId);
+        return next;
+      });
+      return;
+    }
+
+    if (file.isNew && !file.lastSyncedPath) {
       setFiles((prev) => prev.filter((f) => f.id !== fileId));
       if (tabs.includes(fileId)) closeTab(fileId);
       setStagedIds((prev) => {
@@ -293,7 +478,12 @@ function App() {
 
     setFiles((prev) =>
       prev.map((f) =>
-        f.id === fileId ? { ...f, content: f.savedContent } : f
+        f.id === fileId
+          ? {
+            ...f,
+            content: f.savedContent,
+          }
+          : f
       )
     );
     setStagedIds((prev) => {
@@ -312,18 +502,30 @@ function App() {
   };
 
   const handleRestoreAll = () => {
-    const filtered = files
-      .filter((f) => !f.isNew)
-      .map((f) =>
-        f.content !== f.savedContent
-          ? { ...f, content: f.savedContent }
-          : f
-      );
-
-    setFiles(filtered);
+    setFiles((prev) => {
+      const next: FileItem[] = [];
+      for (const f of prev) {
+        if (f.deleted) {
+          next.push({ ...f, deleted: false });
+          continue;
+        }
+        if (f.kind === 'file' && f.isNew && !f.lastSyncedPath) continue;
+        if (f.kind === 'file' && f.content !== f.savedContent) {
+          next.push({ ...f, content: f.savedContent });
+          continue;
+        }
+        next.push(f);
+      }
+      return next;
+    });
 
     for (const f of files) {
-      if (f.isNew && tabs.includes(f.id)) {
+      if (
+        f.kind === 'file' &&
+        f.isNew &&
+        !f.lastSyncedPath &&
+        tabs.includes(f.id)
+      ) {
         closeTab(f.id);
       }
     }
@@ -343,6 +545,7 @@ function App() {
     setPendingFontDelete(null);
   };
 
+  /* ---------- Pull — set lastSyncedPath ---------- */
   const doPull = async (config: GitConfig) => {
     setGitStatus({ state: 'busy', message: 'Pull dari GitHub...' });
 
@@ -353,19 +556,60 @@ function App() {
       return;
     }
 
-    const newFiles: FileItem[] = result.files.map((f) => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      content: f.content,
-      savedContent: f.content,
-      isNew: false,
-    }));
+    const newFiles: FileItem[] = [];
+    const folderMap = new Map<string, string>();
+
+    for (const item of result.files) {
+      const parts = item.name.split('/').filter(Boolean);
+      const fileName = parts.pop();
+      if (!fileName) continue;
+
+      let parentId: string | null = null;
+      let currentPath = '';
+
+      for (const folderName of parts) {
+        currentPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+        const existing = folderMap.get(currentPath);
+        if (existing) {
+          parentId = existing;
+          continue;
+        }
+
+        const folderId = crypto.randomUUID();
+        newFiles.push({
+          id: folderId,
+          name: folderName,
+          kind: 'folder',
+          parentId,
+          content: '',
+          savedContent: '',
+          isNew: false,
+          expanded: true,
+          lastSyncedPath: currentPath,
+        });
+        folderMap.set(currentPath, folderId);
+        parentId = folderId;
+      }
+
+      newFiles.push({
+        id: crypto.randomUUID(),
+        name: fileName,
+        kind: 'file',
+        parentId,
+        content: item.content,
+        savedContent: item.content,
+        isNew: false,
+        lastSyncedPath: item.name,
+      });
+    }
 
     setFiles(newFiles);
     setStagedIds(new Set());
     closeAllTabs();
-    if (newFiles.length > 0) {
-      setTimeout(() => openTab(newFiles[0].id), 0);
+
+    const firstFile = newFiles.find((f) => f.kind === 'file');
+    if (firstFile) {
+      setTimeout(() => openTab(firstFile.id), 0);
     }
 
     const skippedMsg =
@@ -379,6 +623,7 @@ function App() {
     setPendingGit({ type: 'pull', config });
   };
 
+  /* ---------- Push — syncFiles (1 commit, upsert + delete) ---------- */
   const doPush = async (config: GitConfig, commitMessage: string) => {
     const staged = changes.filter((c) => c.staged);
 
@@ -392,30 +637,68 @@ function App() {
 
     setGitStatus({ state: 'busy', message: 'Push ke GitHub...' });
 
-    const payload = staged.map((c) => ({
-      path: c.file.name,
-      content: c.file.content,
-    }));
+    /* ---------- 1. Bangun operasi ---------- */
+    const operations: SyncOperation[] = [];
+    const upsertIds = new Set<string>();
+    const deleteIds = new Set<string>();
 
-    const result = await pushFiles(config, payload, commitMessage);
+    for (const c of staged) {
+      if (c.status === 'deleted') {
+        if (c.deletePath) {
+          operations.push({ type: 'delete', path: c.deletePath });
+        }
+        deleteIds.add(c.file.id);
+        continue;
+      }
+
+      const currentPath = getFullPath(c.file.id, files);
+      operations.push({
+        type: 'upsert',
+        path: currentPath,
+        content: c.file.content,
+      });
+      upsertIds.add(c.file.id);
+
+      if (c.status === 'renamed' && c.deletePath) {
+        operations.push({ type: 'delete', path: c.deletePath });
+      }
+    }
+
+    /* ---------- 2. Sync (1 commit) ---------- */
+    const result = await syncFiles(config, operations, commitMessage);
 
     if (!result.ok) {
       setGitStatus({ state: 'error', message: result.message });
       return;
     }
 
-    const pushedIds = new Set(staged.map((c) => c.file.id));
-    setFiles((prev) =>
-      prev.map((f) =>
-        pushedIds.has(f.id)
-          ? { ...f, savedContent: f.content, isNew: false }
-          : f
-      )
-    );
+    /* ---------- 3. Update state ---------- */
+    setFiles((prev) => {
+      const next: FileItem[] = [];
+      for (const f of prev) {
+        /* file yang dihapus (tombstone) → buang dari array */
+        if (deleteIds.has(f.id)) continue;
+
+        /* file yang di-upsert → set lastSyncedPath */
+        if (upsertIds.has(f.id)) {
+          next.push({
+            ...f,
+            savedContent: f.content,
+            isNew: false,
+            lastSyncedPath: getFullPath(f.id, files),
+          });
+          continue;
+        }
+        next.push(f);
+      }
+      return next;
+    });
+
     setStagedIds(new Set());
 
+    const deleteMsg = result.deleted > 0 ? ` · ${result.deleted} dihapus` : '';
     flashSuccess(
-      `Push berhasil: ${result.pushed} file (${result.commitSha.slice(0, 7)}).`
+      `Push berhasil: ${result.upserted} file${deleteMsg} (${result.commitSha.slice(0, 7)}).`
     );
   };
 
@@ -442,10 +725,21 @@ function App() {
           'Pull akan MENGGANTI semua file lokal dengan file dari repository. File lokal yang tidak ada di repository akan hilang. Lanjutkan?',
       };
     }
-    const stagedCount = changes.filter((c) => c.staged).length;
+    const staged = changes.filter((c) => c.staged);
+    const adds = staged.filter((c) => c.status === 'added').length;
+    const mods = staged.filter((c) => c.status === 'modified').length;
+    const renames = staged.filter((c) => c.status === 'renamed').length;
+    const deletes = staged.filter((c) => c.status === 'deleted').length;
+
+    const parts: string[] = [];
+    if (adds > 0) parts.push(`${adds} baru`);
+    if (mods > 0) parts.push(`${mods} diubah`);
+    if (renames > 0) parts.push(`${renames} dipindah`);
+    if (deletes > 0) parts.push(`${deletes} dihapus`);
+
     return {
       title: 'Push ke GitHub?',
-      message: `Push akan mengirim ${stagedCount} file (yang di-stage) ke repository ${pendingGit.config.owner}/${pendingGit.config.repo} (branch ${pendingGit.config.branch}). Lanjutkan?`,
+      message: `Push akan mengirim: ${parts.join(', ')} ke repository ${pendingGit.config.owner}/${pendingGit.config.repo} (branch ${pendingGit.config.branch}). Lanjutkan?`,
     };
   })();
 
@@ -510,9 +804,12 @@ function App() {
                 changesCount={changes.length}
                 stagedCount={stagedChanges.length}
                 onSelect={handleSelectFile}
+                onToggleFolder={handleToggleFolder}
                 onCreate={handleCreate}
+                onCreateFolder={handleCreateFolder}
                 onRename={handleRename}
                 onRequestDelete={setPendingDelete}
+                onMove={handleMove}
               />
             </div>
             {!isMobile && (
@@ -587,10 +884,11 @@ function App() {
 
       <ConfirmDialog
         open={!!pendingDelete}
-        title="Hapus file?"
+        title={pendingDelete?.kind === 'folder' ? 'Hapus folder?' : 'Hapus file?'}
         message={
           pendingDelete
-            ? `File "${pendingDelete.name}" akan dihapus.`
+            ? `"${pendingDelete.name}"${pendingDelete.kind === 'folder' ? ' dan semua isinya' : ''
+            } akan dihapus.`
             : ''
         }
         confirmLabel="Hapus"

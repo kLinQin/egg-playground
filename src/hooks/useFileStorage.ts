@@ -3,19 +3,39 @@ import type { FileItem } from '../types';
 
 const FILES_KEY = 'webden-files';
 
-/* ---------- migrasi data lama ---------- */
+/* ---------- tipe longgar untuk data mentah dari localStorage ---------- */
 type LegacyFile = {
    id: string;
    name: string;
-   content: string;
+   content?: string;
    saved?: boolean;
    readOnly?: boolean;
    savedContent?: string;
    isNew?: boolean;
+   kind?: 'file' | 'folder';
+   parentId?: string | null;
+   expanded?: boolean;
+   lastSyncedPath?: string | null;
+   deleted?: boolean;
 };
 
 function migrateFile(raw: LegacyFile): FileItem {
-   /* sudah format baru? */
+   const kind = raw.kind === 'folder' ? 'folder' : 'file';
+   const parentId = typeof raw.parentId === 'string' ? raw.parentId : null;
+
+   /* ---------- lastSyncedPath ---------- */
+   /* kalau tidak ada, cek isNew:
+      - isNew: true  → belum pernah di-push → null
+      - isNew: false → sudah di-push, tapi kita tidak tahu path lamanya.
+        Set null (akan ter-set ulang saat push/pull berikutnya).
+      - kalau sudah ada, pakai */
+   const lastSyncedPath =
+      typeof raw.lastSyncedPath === 'string' ? raw.lastSyncedPath : null;
+
+   /* ---------- deleted ---------- */
+   const deleted = typeof raw.deleted === 'boolean' ? raw.deleted : undefined;
+
+   /* ---------- format terbaru (punya savedContent + isNew) ---------- */
    if (
       typeof raw.savedContent === 'string' &&
       typeof raw.isNew === 'boolean'
@@ -23,21 +43,29 @@ function migrateFile(raw: LegacyFile): FileItem {
       return {
          id: raw.id,
          name: raw.name,
-         content: raw.content,
+         kind,
+         parentId,
+         content: raw.content ?? '',
          savedContent: raw.savedContent,
          isNew: raw.isNew,
+         expanded: raw.expanded,
+         lastSyncedPath,
+         deleted,
       };
    }
 
-   /* migrasi dari format lama:
-      - kalau `saved: true` → savedContent = content
-      - kalau `saved: false` → savedContent = '' (anggap belum pernah di-save) */
+   /* ---------- format lama (punya `saved` boolean) ---------- */
    return {
       id: raw.id,
       name: raw.name,
-      content: raw.content,
-      savedContent: raw.saved ? raw.content : '',
+      kind,
+      parentId,
+      content: raw.content ?? '',
+      savedContent: raw.saved ? (raw.content ?? '') : '',
       isNew: true,
+      expanded: raw.expanded,
+      lastSyncedPath,
+      deleted,
    };
 }
 

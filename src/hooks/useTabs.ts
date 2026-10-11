@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TabsState } from '../types';
+import type { TabsState, FileItem } from '../types';
 
 const STORAGE_KEY = 'webden-tabs';
 
@@ -21,7 +21,7 @@ function read(): TabsState {
    }
 }
 
-export function useTabs() {
+export function useTabs(files: FileItem[]) {
    const [state, setState] = useState<TabsState>(read);
 
    /* persist ke localStorage */
@@ -33,18 +33,33 @@ export function useTabs() {
       }
    }, [state]);
 
-   /* ---------- buka tab (atau switch kalau sudah ada) ---------- */
-   const openTab = useCallback((id: string) => {
-      setState((prev) => {
-         if (prev.tabs.includes(id)) {
-            return { ...prev, activeTabId: id };
-         }
-         return {
-            tabs: [...prev.tabs, id],
-            activeTabId: id,
-         };
-      });
-   }, []);
+   /* ---------- helper: cek apakah id adalah file ---------- */
+   const isFile = useCallback(
+      (id: string): boolean => {
+         const f = files.find((x) => x.id === id);
+         return f?.kind === 'file';
+      },
+      [files]
+   );
+
+   /* ---------- buka tab (hanya untuk file) ---------- */
+   const openTab = useCallback(
+      (id: string) => {
+         /* folder tidak bisa dibuka di tab */
+         if (!isFile(id)) return;
+
+         setState((prev) => {
+            if (prev.tabs.includes(id)) {
+               return { ...prev, activeTabId: id };
+            }
+            return {
+               tabs: [...prev.tabs, id],
+               activeTabId: id,
+            };
+         });
+      },
+      [isFile]
+   );
 
    /* ---------- tutup tab ---------- */
    const closeTab = useCallback((id: string) => {

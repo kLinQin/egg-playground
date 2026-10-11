@@ -233,28 +233,36 @@ export async function pullRepo(config: GitConfig): Promise<PullResult> {
    }
 }
 
-/* ===================== Push (multi-file, single commit) ===================== */
+/* ===================== Sync (upsert + delete, single commit) ===================== */
 
-export type PushFile = {
-   path: string;
-   content: string;
-};
+export type SyncOperation =
+   | { type: 'upsert'; path: string; content: string }
+   | { type: 'delete'; path: string };
 
-export type PushResult =
+export type SyncResult =
    | {
       ok: true;
-      pushed: number;
+      upserted: number;
+      deleted: number;
       commitSha: string;
    }
    | { ok: false; message: string };
 
-export async function pushFiles(
+/**
+ * Sinkronisasi file ke GitHub dalam 1 commit.
+ * - upsert: create/update file (dengan blob)
+ * - delete: hapus file (dengan sha: null)
+ *
+ * Gabungan push + delete dalam satu operasi Git Tree API,
+ * supaya tidak ada race condition "not a fast forward".
+ */
+export async function syncFiles(
    config: GitConfig,
-   files: PushFile[],
+   operations: SyncOperation[],
    commitMessage: string
-): Promise<PushResult> {
-   if (files.length === 0) {
-      return { ok: false, message: 'Tidak ada file untuk di-push.' };
+): Promise<SyncResult> {
+   if (operations.length === 0) {
+      return { ok: false, message: 'Tidak ada operasi untuk disinkronkan.' };
    }
 
    try {
@@ -278,33 +286,53 @@ export async function pushFiles(
 
       const baseTreeSha = baseCommit.tree.sha;
 
-      /* ---------- 3. Buat blob untuk setiap file ---------- */
-      const blobs = await Promise.all(
-         files.map(async (file) => {
+      /* ---------- 3. Buat blob untuk operasi upsert ---------- */
+      const upsertOps = operations.filter(
+         (op): op is Extract<SyncOperation, { type: 'upsert' }> =>
+            op.type === 'upsert'
+      );
+      const deleteOps = operations.filter(
+         (op): op is Extract<SyncOperation, { type: 'delete' }> =>
+            op.type === 'delete'
+      );
+
+      const blobResults = await Promise.all(
+         upsertOps.map(async (op) => {
             const { data: blob } = await octokit.rest.git.createBlob({
                owner: config.owner,
                repo: config.repo,
-               content: encodeBase64Utf8(file.content),
+               content: encodeBase64Utf8(op.content),
                encoding: 'base64',
             });
-            return { path: file.path, sha: blob.sha };
+            return { path: op.path, sha: blob.sha };
          })
       );
 
-      /* ---------- 4. Buat tree baru (menggabungkan base tree + blob baru) ---------- */
-      const { data: newTree } = await octokit.rest.git.createTree({
-         owner: config.owner,
-         repo: config.repo,
-         base_tree: baseTreeSha,
-         tree: blobs.map((b) => ({
+      /* ---------- 4. Bangun tree items: upsert + delete ---------- */
+      const treeItems = [
+         ...blobResults.map((b) => ({
             path: b.path,
             mode: '100644' as const,
             type: 'blob' as const,
             sha: b.sha,
          })),
+         ...deleteOps.map((op) => ({
+            path: op.path,
+            mode: '100644' as const,
+            type: 'blob' as const,
+            sha: null,
+         })),
+      ];
+
+      /* ---------- 5. Buat tree baru ---------- */
+      const { data: newTree } = await octokit.rest.git.createTree({
+         owner: config.owner,
+         repo: config.repo,
+         base_tree: baseTreeSha,
+         tree: treeItems,
       });
 
-      /* ---------- 5. Buat commit baru yang menunjuk tree baru ---------- */
+      /* ---------- 6. Buat commit baru ---------- */
       const { data: newCommit } = await octokit.rest.git.createCommit({
          owner: config.owner,
          repo: config.repo,
@@ -313,7 +341,7 @@ export async function pushFiles(
          parents: [baseCommitSha],
       });
 
-      /* ---------- 6. Update branch ke commit baru ---------- */
+      /* ---------- 7. Update branch ---------- */
       await octokit.rest.git.updateRef({
          owner: config.owner,
          repo: config.repo,
@@ -323,12 +351,13 @@ export async function pushFiles(
 
       return {
          ok: true,
-         pushed: files.length,
+         upserted: upsertOps.length,
+         deleted: deleteOps.length,
          commitSha: newCommit.sha,
       };
    } catch (err: unknown) {
       const message =
-         err instanceof Error ? err.message : 'Gagal push ke repository.';
+         err instanceof Error ? err.message : 'Gagal sync ke repository.';
       return { ok: false, message };
    }
 }

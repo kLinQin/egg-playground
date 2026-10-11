@@ -1,19 +1,53 @@
+export type FileKind = 'file' | 'folder';
+
 export type FileItem = {
    id: string;
    name: string;
+   /** 'file' atau 'folder' */
+   kind: FileKind;
+   /** null = root, string = id folder induk */
+   parentId: string | null;
    content: string;
    /** konten terakhir yang di-save — untuk deteksi perubahan & restore */
    savedContent: string;
    /** true kalau belum pernah di-push ke GitHub */
    isNew: boolean;
+   /** state UI: folder sedang di-expand? */
+   expanded?: boolean;
+
+   /* ---------- BARU: sinkronisasi GitHub ---------- */
+   /**
+    * Path terakhir yang dikenal GitHub (mis. "src/index.ts").
+    * null = belum pernah di-push.
+    * Dipakai untuk deteksi rename/move & hapus file lama di GitHub.
+    */
+   lastSyncedPath: string | null;
+   /**
+    * Tombstone: user hapus file ini, tapi belum di-push ke GitHub.
+    * Kalau true & lastSyncedPath !== null → perlu dihapus di GitHub.
+    * Kalau true & lastSyncedPath === null → cukup hapus dari lokal.
+    */
+   deleted?: boolean;
 };
 
-export type FileStatus = 'modified' | 'added' | 'deleted';
+export type FileTreeNode = {
+   file: FileItem;
+   children: FileTreeNode[];
+   /** level kedalaman — 0 = root */
+   depth: number;
+};
+
+export type FileStatus = 'modified' | 'added' | 'deleted' | 'renamed';
 
 export type ChangeItem = {
    file: FileItem;
    status: FileStatus;
    staged: boolean;
+   /**
+    * Path lama yang perlu dihapus di GitHub (kalau file di-rename/move).
+    * Hanya terisi kalau status === 'renamed'.
+    */
+   deletePath?: string;
 };
 
 export type TabsState = {
