@@ -21,6 +21,7 @@ import { Editor } from './components/Editor';
 import { TabBar } from './components/TabBar';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { LocalPanel } from './components/LocalPanel';
+import { HelpModal } from './components/HelpModal';
 import { pullRepo, syncFiles } from './lib/github';
 import type { SyncOperation } from './lib/github';
 import './App.css';
@@ -132,6 +133,7 @@ function App() {
 
   const [filesOpen, setFilesOpen] = useState(true);
   const [gitOpen, setGitOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ state: 'idle' });
   const [pendingDelete, setPendingDelete] = useState<FileItem | null>(null);
   const [pendingGit, setPendingGit] = useState<PendingGitAction>(null);
@@ -1127,7 +1129,15 @@ function App() {
   })();
 
   return (
-    <div className="app">
+    <div
+      className="app"
+      style={
+        {
+          '--status-bar-height': `${settings.bottomBarHeight}px`,
+          '--tab-max-width': `${settings.tabMaxWidth}px`,
+        } as React.CSSProperties
+      }
+    >
       <Toolbar
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -1142,6 +1152,7 @@ function App() {
         filesOpen={filesOpen}
         source={source}
         onChangeSource={handleChangeSource}
+        onToggleHelp={() => setHelpOpen(true)}
       />
 
       <div className="app__body">
@@ -1257,15 +1268,15 @@ function App() {
                   />
                 </Suspense>
               ) : (
-                  <LocalPanel
-                    status={gitStatus}
-                    changes={changes}
-                    pendingIds={pendingIds}
-                    onDiscard={handleDiscard}
-                    onDiscardAll={handleDiscardAll}
-                    onSaveAll={() => void handleSaveAll()}
-                    saving={saving}
-                  />
+                <LocalPanel
+                  status={gitStatus}
+                  changes={changes}
+                  pendingIds={pendingIds}
+                  onDiscard={handleDiscard}
+                  onDiscardAll={handleDiscardAll}
+                  onSaveAll={() => void handleSaveAll()}
+                  saving={saving}
+                />
               )}
             </div>
           </>
@@ -1321,6 +1332,11 @@ function App() {
         onCancel={handleCancelSourceChange}
         onThird={() => handleConfirmSourceChange('discard')}
         onConfirm={() => handleConfirmSourceChange('save')}
+      />
+
+      <HelpModal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
       />
 
       {fontError && (

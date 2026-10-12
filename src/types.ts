@@ -120,6 +120,10 @@ export type EditorSettings = {
    highlightActiveLine: boolean;
    /** auto-tutup pasangan bracket & quote */
    closeBrackets: boolean;
+   /** tinggi bottom bar (editor, git, local, file manager) */
+   bottomBarHeight: number;
+   /** lebar maksimum setiap tab di tab bar */
+   tabMaxWidth: number;
 };
 
 /* ===================== Sumber file ===================== */

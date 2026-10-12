@@ -74,6 +74,9 @@ export function FileManager({
    /* ---------- inline confirm clear all ---------- */
    const [confirmClearAll, setConfirmClearAll] = useState(false);
 
+   /* ---------- hover state (untuk tampilkan tombol ⋯) ---------- */
+   const [hoveredId, setHoveredId] = useState<string | null>(null);
+
    /* ---------- drag state ---------- */
    const [draggingId, setDraggingId] = useState<string | null>(null);
    const [dragOverFolderId, setDragOverFolderId] = useState<
@@ -323,6 +326,10 @@ export function FileManager({
          ? { Icon: null, color: null }
          : getFileIcon(file.name);
 
+      /* ---------- tampil tombol ⋯? ---------- */
+      const showMore =
+         file.id === activeId || file.id === hoveredId;
+
       /* ---------- chevron (folder) / spacer (file) ---------- */
       const chevron = isFolder ? (
          <button
@@ -402,6 +409,8 @@ export function FileManager({
                   if (isFolder) onToggleFolder(file.id);
                   else onSelect(file.id);
                }}
+               onMouseEnter={() => setHoveredId(file.id)}
+               onMouseLeave={() => setHoveredId(null)}
             >
                <Indent depth={depth} />
                {chevron}
@@ -420,18 +429,20 @@ export function FileManager({
                   {isDirty && <span className="file-item__dirty">*</span>}
                </span>
 
-               {/* tombol ⋯ (more) */}
-               <button
-                  className="file-item__action file-item__action--more"
-                  onClick={(e) => {
-                     e.stopPropagation();
-                     setActionMenuFor(actionMenuFor === file.id ? null : file.id);
-                  }}
-                  title="Aksi"
-                  aria-label="Aksi"
-               >
-                  <MoreHorizontal size={14} />
-               </button>
+               {/* tombol ⋯ (more) — hanya saat active atau hover */}
+               {showMore && (
+                  <button
+                     className="file-item__action file-item__action--more"
+                     onClick={(e) => {
+                        e.stopPropagation();
+                        setActionMenuFor(actionMenuFor === file.id ? null : file.id);
+                     }}
+                     title="Aksi"
+                     aria-label="Aksi"
+                  >
+                     <MoreHorizontal size={14} />
+                  </button>
+               )}
 
                {/* dropdown aksi */}
                {actionMenuFor === file.id && (

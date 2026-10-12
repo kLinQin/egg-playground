@@ -9,6 +9,7 @@ import {
    Folder,
    HardDrive,
    Trash2,
+   HelpCircle,
 } from 'lucide-react';
 import type { FontChoice, Theme, FileSource } from '../types';
 
@@ -28,6 +29,9 @@ type Props = {
    /* file source */
    source: FileSource;
    onChangeSource: (next: FileSource) => void;
+
+   /* help */
+   onToggleHelp: () => void;
 };
 
 export function Toolbar({
@@ -44,6 +48,7 @@ export function Toolbar({
    filesOpen,
    source,
    onChangeSource,
+   onToggleHelp,
 }: Props) {
    const [fontOpen, setFontOpen] = useState(false);
    const fontRef = useRef<HTMLDivElement>(null);
@@ -194,6 +199,14 @@ export function Toolbar({
                title="Git panel"
             >
                <GitBranch size={16} />
+            </button>
+
+            <button
+               className="icon-btn"
+               onClick={onToggleHelp}
+               title="Tutorial & panduan"
+            >
+               <HelpCircle size={16} />
             </button>
          </div>
       </div>

@@ -15,6 +15,8 @@ const DEFAULTS: EditorSettings = {
    linting: true,
    highlightActiveLine: true,
    closeBrackets: true,
+   bottomBarHeight: 24,
+   tabMaxWidth: 200,
 };
 
 function read(): EditorSettings {

@@ -207,6 +207,40 @@ export function TabBar({
                   <div className="dropdown__sep" />
 
                   <label className="editor-settings__row">
+                     <span>Bottom bar height</span>
+                     <input
+                        type="number"
+                        min={20}
+                        max={40}
+                        value={settings.bottomBarHeight}
+                        onChange={(e) =>
+                           onChangeSettings(
+                              'bottomBarHeight',
+                              Number(e.target.value) || 24
+                           )
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Tab max width</span>
+                     <input
+                        type="number"
+                        min={80}
+                        max={300}
+                        value={settings.tabMaxWidth}
+                        onChange={(e) =>
+                           onChangeSettings(
+                              'tabMaxWidth',
+                              Number(e.target.value) || 200
+                           )
+                        }
+                     />
+                  </label>
+
+                  <div className="dropdown__sep" />
+
+                  <label className="editor-settings__row">
                      <span>Line numbers</span>
                      <input
                         type="checkbox"
