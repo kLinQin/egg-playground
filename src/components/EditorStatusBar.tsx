@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import {
    Check,
    Wrench,
-   ClipboardCopy,
+   X,
+   Undo2,
+   Redo2,
+   TextSelect,
+   Copy,
    Scissors,
-   ClipboardPaste,
+   Clipboard,
    Brackets,
    Quote,
 } from 'lucide-react';
@@ -24,10 +28,13 @@ type Props = {
    warnings?: number;
 
    /* mobile action bar */
+   onUndo: () => void;
+   onRedo: () => void;
    onSelectAll: () => void;
    onCopy: () => void;
    onCut: () => void;
    onPaste: () => void;
+   onInsertComma: () => void;
    onInsertBrackets: () => void;
    onInsertQuotes: () => void;
 };
@@ -43,10 +50,13 @@ export function EditorStatusBar({
    charCount,
    errors = 0,
    warnings = 0,
+   onUndo,
+   onRedo,
    onSelectAll,
    onCopy,
    onCut,
    onPaste,
+   onInsertComma,
    onInsertBrackets,
    onInsertQuotes,
 }: Props) {
@@ -56,8 +66,8 @@ export function EditorStatusBar({
    const [open, setOpen] = useState(false);
    const rootRef = useRef<HTMLDivElement>(null);
 
-   const [actionsOpen, setActionsOpen] = useState(false);
-   const actionsRef = useRef<HTMLDivElement>(null);
+   /* ---------- mode aksi (replace bottom bar) ---------- */
+   const [actionsMode, setActionsMode] = useState(false);
 
    /* close dropdown bahasa on outside click */
    useEffect(() => {
@@ -80,38 +90,146 @@ export function EditorStatusBar({
       };
    }, [open]);
 
-   /* close action menu on outside click */
+   /* Escape → keluar dari mode aksi */
    useEffect(() => {
-      if (!actionsOpen) return;
-
-      const onDocDown = (e: MouseEvent) => {
-         if (
-            actionsRef.current &&
-            !actionsRef.current.contains(e.target as Node)
-         ) {
-            setActionsOpen(false);
-         }
-      };
+      if (!actionsMode) return;
       const onKey = (e: KeyboardEvent) => {
-         if (e.key === 'Escape') setActionsOpen(false);
+         if (e.key === 'Escape') setActionsMode(false);
       };
-
-      document.addEventListener('mousedown', onDocDown);
       document.addEventListener('keydown', onKey);
-      return () => {
-         document.removeEventListener('mousedown', onDocDown);
-         document.removeEventListener('keydown', onKey);
-      };
-   }, [actionsOpen]);
+      return () => document.removeEventListener('keydown', onKey);
+   }, [actionsMode]);
 
    const runAction = (fn: () => void) => {
-      setActionsOpen(false);
-      /* beri kesempatan dropdown menutup dulu, baru jalankan */
-      window.setTimeout(fn, 0);
+      fn();
+      /* tetap di mode aksi — user bisa pilih aksi lain */
    };
 
    const CurrentIcon = language.Icon;
 
+   /* ===================== MODE AKSI ===================== */
+   if (actionsMode) {
+      return (
+         <div className="status-bar status-bar--actions">
+            <div className="status-bar__action-scroll">
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onUndo)}
+                  title="Undo"
+                  aria-label="Undo"
+               >
+                  <Undo2 size={14} />
+                  <span>Undo</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onRedo)}
+                  title="Redo"
+                  aria-label="Redo"
+               >
+                  <Redo2 size={14} />
+                  <span>Redo</span>
+               </button>
+
+               <span className="status-bar__action-sep" />
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onSelectAll)}
+                  title="Select All"
+                  aria-label="Select All"
+               >
+                  <TextSelect size={14} />
+                  <span>Select</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onCopy)}
+                  title="Copy"
+                  aria-label="Copy"
+               >
+                  <Copy size={14} />
+                  <span>Copy</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onCut)}
+                  title="Cut"
+                  aria-label="Cut"
+               >
+                  <Scissors size={14} />
+                  <span>Cut</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onPaste)}
+                  title="Paste"
+                  aria-label="Paste"
+               >
+                  <Clipboard size={14} />
+                  <span>Paste</span>
+               </button>
+
+               <span className="status-bar__action-sep" />
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn status-bar__action-btn--char"
+                  onClick={() => runAction(onInsertComma)}
+                  title="Insert ,"
+                  aria-label="Insert comma"
+               >
+                  <span className="status-bar__action-char">,</span>
+                  <span>Comma</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onInsertBrackets)}
+                  title='Insert [ ]'
+                  aria-label='Insert brackets'
+               >
+                  <Brackets size={14} />
+                  <span>Bracket</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onInsertQuotes)}
+                  title='Insert " "'
+                  aria-label='Insert quotes'
+               >
+                  <Quote size={14} />
+                  <span>Quote</span>
+               </button>
+            </div>
+
+            <button
+               type="button"
+               className="status-bar__actions-btn is-active"
+               onClick={() => setActionsMode(false)}
+               title="Tutup aksi editor"
+               aria-label="Tutup aksi editor"
+            >
+               <X size={14} />
+            </button>
+         </div>
+      );
+   }
+
+   /* ===================== MODE NORMAL ===================== */
    return (
       <div className="status-bar">
          <span className="status-bar__item">
@@ -220,80 +338,17 @@ export function EditorStatusBar({
 
          <span className="status-bar__item">{charCount} chars</span>
 
-         {/* ---------- mobile action bar ---------- */}
-         <div className="status-bar__actions" ref={actionsRef}>
+         {/* ---------- mobile action bar toggle ---------- */}
+         <div className="status-bar__actions">
             <button
                type="button"
-               className={`status-bar__actions-btn ${actionsOpen ? 'is-active' : ''}`}
-               onClick={() => setActionsOpen((v) => !v)}
+               className="status-bar__actions-btn"
+               onClick={() => setActionsMode(true)}
                title="Aksi editor"
-               aria-haspopup="menu"
-               aria-expanded={actionsOpen}
+               aria-label="Aksi editor"
             >
                <Wrench size={12} />
             </button>
-
-            {actionsOpen && (
-               <div className="status-bar__actions-menu" role="menu">
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onSelectAll)}
-                     role="menuitem"
-                  >
-                     <Check size={14} />
-                     <span>Select All</span>
-                  </button>
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onCopy)}
-                     role="menuitem"
-                  >
-                     <ClipboardCopy size={14} />
-                     <span>Copy</span>
-                  </button>
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onCut)}
-                     role="menuitem"
-                  >
-                     <Scissors size={14} />
-                     <span>Cut</span>
-                  </button>
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onPaste)}
-                     role="menuitem"
-                  >
-                     <ClipboardPaste size={14} />
-                     <span>Paste</span>
-                  </button>
-
-                  <div className="status-bar__actions-divider" />
-
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onInsertBrackets)}
-                     role="menuitem"
-                  >
-                     <Brackets size={14} />
-                     <span>Insert [ ]</span>
-                  </button>
-                  <button
-                     type="button"
-                     className="status-bar__actions-item"
-                     onClick={() => runAction(onInsertQuotes)}
-                     role="menuitem"
-                  >
-                     <Quote size={14} />
-                     <span>Insert " "</span>
-                  </button>
-               </div>
-            )}
          </div>
       </div>
    );

@@ -15,7 +15,6 @@ import { useFileStorage } from './hooks/useFileStorage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useTabs } from './hooks/useTabs';
-import { useFileSystem } from './hooks/useFileSystem';
 import { Toolbar } from './components/Toolbar';
 import { FileManager } from './components/FileManager';
 import { Editor } from './components/Editor';
@@ -38,38 +37,6 @@ type PendingGitAction =
 type PendingSourceChange = FileSource | null;
 
 const SUCCESS_TIMEOUT = 3000;
-
-const MAX_FILE_SIZE = 500 * 1024;
-const MAX_FILE_COUNT = 2000;
-
-const TEXT_EXTENSIONS = [
-  'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
-  'html', 'htm', 'css', 'scss', 'sass', 'less',
-  'json', 'md', 'markdown',
-  'py', 'rs', 'sql', 'xml',
-  'txt', 'yml', 'yaml', 'toml', 'ini', 'env',
-  'sh', 'bash', 'zsh',
-  'go', 'java', 'kt', 'swift', 'rb', 'php', 'c', 'h', 'cpp', 'hpp', 'cs',
-  'vue', 'svelte',
-  'gitignore', 'editorconfig',
-];
-
-function isTextFile(name: string): boolean {
-  const lower = name.toLowerCase();
-  const basename = lower.split('/').pop() ?? '';
-  if (
-    basename === '.gitignore' ||
-    basename === '.editorconfig' ||
-    basename === 'license' ||
-    basename === 'readme'
-  ) {
-    return true;
-  }
-  const dot = lower.lastIndexOf('.');
-  if (dot === -1) return false;
-  const ext = lower.slice(dot + 1);
-  return TEXT_EXTENSIONS.includes(ext);
-}
 
 function getFullPath(fileId: string, files: FileItem[]): string {
   const parts: string[] = [];
@@ -117,19 +84,6 @@ function App() {
   } = useFileStorage();
 
   const {
-    supported: fsSupported,
-    folderName: diskFolderName,
-    entries: diskEntries,
-    pickFolder,
-    releaseFolder,
-    readFile: fsReadFile,
-    writeFile: fsWriteFile,
-    deleteFile: fsDeleteFile,
-    createFolder: fsCreateFolder,
-    refreshEntries: fsRefresh,
-  } = useFileSystem();
-
-  const {
     tabs,
     activeTabId,
     openTab,
@@ -143,11 +97,8 @@ function App() {
 
   const [source, setSource] = useState<FileSource>('local');
   const [pendingSource, setPendingSource] = useState<PendingSourceChange>(null);
-  const [diskLoading, setDiskLoading] = useState(false);
-  const [diskError, setDiskError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [hasPulled, setHasPulled] = useState(false);
 
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
@@ -314,103 +265,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (source !== 'disk') return;
-    if (!fsSupported) return;
-    if (diskEntries.length === 0) return;
-
-    let cancelled = false;
-
-    (async () => {
-      setDiskLoading(true);
-      setDiskError(null);
-
-      const textEntries = diskEntries.filter(
-        (e) => e.kind === 'file' && isTextFile(e.path)
-      );
-
-      if (textEntries.length > MAX_FILE_COUNT) {
-        setDiskError(
-          `Folder terlalu besar (${textEntries.length} file). Maks ${MAX_FILE_COUNT}.`
-        );
-        setDiskLoading(false);
-        return;
-      }
-
-      const folderMap = new Map<string, string>();
-      const newFiles: FileItem[] = [];
-
-      for (const entry of diskEntries) {
-        if (entry.kind !== 'folder') continue;
-        const id = crypto.randomUUID();
-        folderMap.set(entry.path, id);
-
-        const parts = entry.path.split('/');
-        parts.pop();
-        const parentPath = parts.join('/');
-        const parentId = parentPath ? folderMap.get(parentPath) ?? null : null;
-
-        newFiles.push({
-          id,
-          name: entry.name,
-          kind: 'folder',
-          parentId,
-          content: '',
-          savedContent: '',
-          isNew: false,
-          expanded: false,
-          lastSyncedPath: entry.path,
-          languageOverride: null,
-        });
-      }
-
-      for (const entry of textEntries) {
-        if (cancelled) return;
-
-        try {
-          const content = await fsReadFile(entry.path);
-          if (content.length > MAX_FILE_SIZE) continue;
-
-          const parts = entry.path.split('/');
-          parts.pop();
-          const parentPath = parts.join('/');
-          const parentId = parentPath
-            ? folderMap.get(parentPath) ?? null
-            : null;
-
-          newFiles.push({
-            id: crypto.randomUUID(),
-            name: entry.name,
-            kind: 'file',
-            parentId,
-            content,
-            savedContent: content,
-            isNew: false,
-            lastSyncedPath: entry.path,
-            languageOverride: null,
-          });
-        } catch {
-          /* skip file yang gagal dibaca */
-        }
-      }
-
-      if (cancelled) return;
-
-      setFiles(newFiles);
-      setDiskLoading(false);
-
-      const first = newFiles.find((f) => f.kind === 'file');
-      if (first) {
-        setTimeout(() => openTab(first.id), 0);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, diskEntries]);
-
   const handleToggleFiles = () => {
     setFilesOpen((v) => {
       const next = !v;
@@ -472,18 +326,6 @@ function App() {
     if (source === 'github') return;
 
     try {
-      if (source === 'disk') {
-        const path = activeFile.lastSyncedPath;
-        if (!path) {
-          setGitStatus({
-            state: 'error',
-            message: 'File belum punya path di disk.',
-          });
-          return;
-        }
-        await fsWriteFile(path, activeFile.content);
-      }
-
       setFiles((prev) => {
         const next = prev.map((f) =>
           f.id === activeFile.id
@@ -583,21 +425,6 @@ function App() {
     if (err) return err;
     const id = crypto.randomUUID();
 
-    if (source === 'disk') {
-      const parentFile = parentId
-        ? files.find((f) => f.id === parentId)
-        : null;
-      const parentPath = parentFile?.lastSyncedPath ?? '';
-      const path = parentPath ? `${parentPath}/${name}` : name;
-
-      void fsCreateFolder(path).catch(() => {
-        setGitStatus({
-          state: 'error',
-          message: `Gagal buat folder "${name}" di disk.`,
-        });
-      });
-    }
-
     setFiles((prev) => [
       ...prev,
       {
@@ -621,31 +448,6 @@ function App() {
     const err = validateName(name, file.parentId, id);
     if (err) return err;
 
-    if (source === 'disk' && file.lastSyncedPath) {
-      const parts = file.lastSyncedPath.split('/');
-      parts.pop();
-      const parentPath = parts.join('/');
-      const newPath = parentPath ? `${parentPath}/${name}` : name;
-
-      void (async () => {
-        try {
-          if (file.kind === 'file') {
-            await fsWriteFile(newPath, file.content);
-            await fsDeleteFile(file.lastSyncedPath!);
-          } else {
-            await fsCreateFolder(newPath);
-            await fsDeleteFile(file.lastSyncedPath!);
-          }
-          await fsRefresh();
-        } catch {
-          setGitStatus({
-            state: 'error',
-            message: `Gagal rename "${file.name}" di disk.`,
-          });
-        }
-      })();
-    }
-
     setFiles((prev) =>
       prev.map((f) => (f.id === id ? { ...f, name } : f))
     );
@@ -664,25 +466,6 @@ function App() {
     };
     collect(pendingDelete.id);
 
-    if (source === 'disk') {
-      const pathsToDelete: string[] = [];
-      for (const id of idsToDelete) {
-        const f = files.find((x) => x.id === id);
-        if (f && f.lastSyncedPath) pathsToDelete.push(f.lastSyncedPath);
-      }
-
-      void (async () => {
-        for (const p of pathsToDelete) {
-          try {
-            await fsDeleteFile(p);
-          } catch {
-            /* ignore */
-          }
-        }
-        await fsRefresh();
-      })();
-    }
-
     setFiles((prev) => {
       const next: FileItem[] = [];
       for (const f of prev) {
@@ -690,7 +473,7 @@ function App() {
           next.push(f);
           continue;
         }
-        if (source === 'disk' || !f.lastSyncedPath) continue;
+        if (!f.lastSyncedPath) continue;
         next.push({ ...f, deleted: true });
       }
 
@@ -843,13 +626,6 @@ function App() {
         ? file.preEditContent
         : file.savedContent;
 
-    /* ---------- tulis ulang ke disk / localStorage ---------- */
-    if (source === 'disk' && file.lastSyncedPath) {
-      void fsWriteFile(file.lastSyncedPath, revertTo).catch(() => {
-        /* ignore */
-      });
-    }
-
     /* ---------- guard onChange selama sync value ---------- */
     isDiscardingRef.current = true;
 
@@ -898,21 +674,6 @@ function App() {
   };
 
   const handleDiscardAll = () => {
-    /* ---------- kumpulkan file yang perlu ditulis ulang ke disk ---------- */
-    if (source === 'disk') {
-      for (const f of files) {
-        if (f.kind !== 'file' || f.deleted || !f.lastSyncedPath) continue;
-        if (f.preEditContent === undefined && f.content === f.savedContent)
-          continue;
-
-        const revertTo =
-          f.preEditContent !== undefined ? f.preEditContent : f.savedContent;
-        void fsWriteFile(f.lastSyncedPath, revertTo).catch(() => {
-          /* ignore */
-        });
-      }
-    }
-
     isDiscardingRef.current = true;
 
     setFiles((prev) => {
@@ -994,28 +755,6 @@ function App() {
     setSaving(true);
 
     try {
-      if (source === 'disk') {
-        for (const c of unsaved) {
-          if (c.status === 'deleted') {
-            if (c.deletePath) {
-              try {
-                await fsDeleteFile(c.deletePath);
-              } catch {
-                /* ignore */
-              }
-            }
-            continue;
-          }
-
-          const path = c.file.lastSyncedPath || getFullPath(c.file.id, files);
-          try {
-            await fsWriteFile(path, c.file.content);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-
       const unsavedIds = new Set(unsaved.map((c) => c.file.id));
 
       setFiles((prev) => {
@@ -1047,10 +786,6 @@ function App() {
         return next;
       });
 
-      if (source === 'disk') {
-        await fsRefresh();
-      }
-
       setStagedIds(new Set());
       setPendingIds(new Set());
 
@@ -1077,55 +812,6 @@ function App() {
     flashSuccess('Semua file local dihapus.');
   };
 
-  const handleSaveToDisk = async () => {
-    if (!fsSupported) return;
-
-    const filesToSave = files.filter((f) => !f.deleted);
-    if (filesToSave.length === 0) return;
-
-    const ok = await pickFolder();
-    if (!ok) return;
-
-    setSaving(true);
-
-    try {
-      const folders = filesToSave.filter((f) => f.kind === 'folder');
-      for (const folder of folders) {
-        const path = getFullPath(folder.id, files);
-        if (!path) continue;
-        try {
-          await fsCreateFolder(path);
-        } catch {
-          /* ignore */
-        }
-      }
-
-      const textFiles = filesToSave.filter((f) => f.kind === 'file');
-      let written = 0;
-
-      for (const file of textFiles) {
-        const path = getFullPath(file.id, files);
-        if (!path) continue;
-        try {
-          await fsWriteFile(path, file.content);
-          written++;
-        } catch {
-          /* ignore */
-        }
-      }
-
-      await releaseFolder();
-
-      flashSuccess(`${written} file disimpan ke folder.`);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Gagal menyimpan ke disk.';
-      setGitStatus({ state: 'error', message });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleRequestRemoveFont = (id: string) => {
     const font = fonts.find((f) => f.id === id);
     if (!font) return;
@@ -1139,23 +825,8 @@ function App() {
   };
 
   const applySourceChange = async (next: FileSource) => {
-    if (source === 'disk' && next !== 'disk') {
-      await releaseFolder();
-    }
-
     if (source === 'local' && next !== 'local') {
       flushToStorage();
-    }
-
-    if (next === 'disk') {
-      if (!fsSupported) return;
-
-      if (!diskFolderName) {
-        const ok = await pickFolder();
-        if (!ok) return;
-      } else {
-        await fsRefresh();
-      }
     }
 
     closeAllTabs();
@@ -1187,7 +858,6 @@ function App() {
       const snapshot = sourceSnapshotRef.current.github;
       if (snapshot && snapshot.length > 0) {
         setFiles(snapshot);
-        setHasPulled(true);
 
         const firstFile = snapshot.find(
           (f) => f.kind === 'file' && !f.deleted
@@ -1197,10 +867,7 @@ function App() {
         }
       } else {
         setFiles([]);
-        setHasPulled(false);
       }
-    } else if (next === 'disk') {
-      setFiles([]);
     }
   };
 
@@ -1221,22 +888,6 @@ function App() {
     setPendingSource(null);
 
     if (mode === 'save') {
-      if (source === 'disk') {
-        const dirty = files.filter(
-          (f) =>
-            f.kind === 'file' &&
-            f.lastSyncedPath &&
-            f.content !== f.savedContent
-        );
-        for (const f of dirty) {
-          try {
-            await fsWriteFile(f.lastSyncedPath!, f.content);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-
       const updatedFiles = files.map((f) => ({
         ...f,
         savedContent: f.content,
@@ -1326,7 +977,6 @@ function App() {
     setPendingIds(new Set());
     closeAllTabs();
     setSource('github');
-    setHasPulled(true);
 
     const firstFile = newFiles.find((f) => f.kind === 'file');
     if (firstFile) {
@@ -1480,7 +1130,6 @@ function App() {
     if (!pendingSource) return { title: '', message: '' };
     const labels: Record<FileSource, string> = {
       local: 'Local',
-      disk: 'Folder',
       github: 'GitHub',
     };
     return {
@@ -1506,8 +1155,6 @@ function App() {
         filesOpen={filesOpen}
         source={source}
         onChangeSource={handleChangeSource}
-        fsSupported={fsSupported}
-        folderName={diskFolderName}
       />
 
       <div className="app__body">
@@ -1542,6 +1189,8 @@ function App() {
                 onRename={handleRename}
                 onRequestDelete={setPendingDelete}
                 onMove={handleMove}
+                showClearAll={source === 'local' && files.length > 0}
+                onRequestClearAll={handleClearAllLocal}
               />
             </div>
             {!isMobile && (
@@ -1567,11 +1216,7 @@ function App() {
             onSave={() => void handleSave()}
           />
 
-          {diskLoading ? (
-            <div className="editor-placeholder">Memuat file dari folder…</div>
-          ) : diskError ? (
-            <div className="editor-placeholder">{diskError}</div>
-          ) : activeFile ? (
+          {activeFile ? (
             <Editor
               file={activeFile}
               fontFamily={activeFont.family}
@@ -1599,8 +1244,7 @@ function App() {
               className={`app__col app__col--git ${isMobile ? 'app__col--drawer app__col--drawer-right' : ''
                 }`}
               style={
-                isMobile
-                  ? undefined
+                isMobile ? undefined
                   : { width: gitCol.width, flexShrink: 0 }
               }
             >
@@ -1622,20 +1266,15 @@ function App() {
                     onStageAll={handleStageAll}
                     onUnstageAll={handleUnstageAll}
                     onRestoreAll={handleDiscardAll}
-                    canSaveToDisk={hasPulled && fsSupported}
-                    onSaveToDisk={() => void handleSaveToDisk()}
                   />
                 </Suspense>
               ) : (
                 <LocalPanel
-                  source={source}
-                  folderName={diskFolderName}
                   changes={changes}
                   pendingIds={pendingIds}
                   onDiscard={handleDiscard}
                   onDiscardAll={handleDiscardAll}
                   onSaveAll={() => void handleSaveAll()}
-                  onClearAll={handleClearAllLocal}
                   saving={saving}
                 />
               )}

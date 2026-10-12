@@ -24,7 +24,6 @@ import {
    FileMinus,
    Settings,
    GitBranch,
-   HardDrive,
 } from 'lucide-react';
 import type { GitConfig, GitStatus, ChangeItem } from '../types';
 import {
@@ -57,10 +56,6 @@ type Props = {
    onStageAll: () => void;
    onUnstageAll: () => void;
    onRestoreAll: () => void;
-
-   /* Save to Disk */
-   canSaveToDisk: boolean;
-   onSaveToDisk: () => void;
 };
 
 type DeviceState =
@@ -240,8 +235,6 @@ export function GitPanel({
    onStageAll,
    onUnstageAll,
    onRestoreAll,
-   canSaveToDisk,
-   onSaveToDisk,
 }: Props) {
    const {
       token,
@@ -783,17 +776,6 @@ export function GitPanel({
                         <ArrowUp size={14} /> Push
                      </button>
                   </div>
-
-                  {/* Save to Disk — muncul setelah Pull sukses */}
-                  {canSaveToDisk && (
-                     <button
-                        className="btn"
-                        onClick={onSaveToDisk}
-                        title="Simpan semua file hasil Pull ke folder lokal"
-                     >
-                        <HardDrive size={14} /> Save to Disk
-                     </button>
-                  )}
                </div>
 
                <div className="changes">

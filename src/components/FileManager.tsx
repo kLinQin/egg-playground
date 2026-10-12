@@ -27,6 +27,10 @@ type Props = {
    onRename: (id: string, name: string) => string | null;
    onRequestDelete: (file: FileItem) => void;
    onMove: (id: string, newParentId: string | null) => void;
+
+   /* Clear All Local (opsional) */
+   showClearAll: boolean;
+   onRequestClearAll: () => void;
 };
 
 /* ---------- indent guide: render `depth` span vertikal ---------- */
@@ -53,6 +57,8 @@ export function FileManager({
    onRename,
    onRequestDelete,
    onMove,
+   showClearAll,
+   onRequestClearAll,
 }: Props) {
    /* ---------- state ---------- */
    const [addingAt, setAddingAt] = useState<{
@@ -64,6 +70,9 @@ export function FileManager({
 
    const [editingId, setEditingId] = useState<string | null>(null);
    const [editingName, setEditingName] = useState('');
+
+   /* ---------- inline confirm clear all ---------- */
+   const [confirmClearAll, setConfirmClearAll] = useState(false);
 
    /* ---------- drag state ---------- */
    const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -104,6 +113,16 @@ export function FileManager({
       document.addEventListener('mousedown', onClick);
       return () => document.removeEventListener('mousedown', onClick);
    }, [moveMenuFor]);
+
+   /* Escape → cancel inline confirm clear all */
+   useEffect(() => {
+      if (!confirmClearAll) return;
+      const onKey = (e: KeyboardEvent) => {
+         if (e.key === 'Escape') setConfirmClearAll(false);
+      };
+      document.addEventListener('keydown', onKey);
+      return () => document.removeEventListener('keydown', onKey);
+   }, [confirmClearAll]);
 
    /* ---------- build tree dari flat files ---------- */
    const tree: FileTreeNode[] = useMemo(() => {
@@ -542,25 +561,63 @@ export function FileManager({
    return (
       <div className="file-manager">
          <div className="file-manager__header">
-            <span>Files</span>
-            <div className="file-manager__header-actions">
-               <button
-                  className="icon-btn"
-                  onClick={() => startCreate(null, true)}
-                  title="Folder baru"
-                  disabled={!!addingAt || editingId !== null}
-               >
-                  <FolderPlus size={16} />
-               </button>
-               <button
-                  className="icon-btn"
-                  onClick={() => startCreate(null, false)}
-                  title="File baru"
-                  disabled={!!addingAt || editingId !== null}
-               >
-                  <Plus size={16} />
-               </button>
-            </div>
+            {confirmClearAll ? (
+               <>
+                  <span className="file-manager__confirm-text">
+                     Hapus semua file?
+                  </span>
+                  <div className="file-manager__header-actions">
+                     <button
+                        className="icon-btn file-manager__confirm-ok"
+                        onClick={() => {
+                           setConfirmClearAll(false);
+                           onRequestClearAll();
+                        }}
+                        title="Ya, hapus semua"
+                     >
+                        <Check size={16} />
+                     </button>
+                     <button
+                        className="icon-btn"
+                        onClick={() => setConfirmClearAll(false)}
+                        title="Batal"
+                     >
+                        <X size={16} />
+                     </button>
+                  </div>
+               </>
+            ) : (
+               <>
+                  <span>Files</span>
+                  <div className="file-manager__header-actions">
+                     <button
+                        className="icon-btn"
+                        onClick={() => startCreate(null, true)}
+                        title="Folder baru"
+                        disabled={!!addingAt || editingId !== null}
+                     >
+                        <FolderPlus size={16} />
+                     </button>
+                     <button
+                        className="icon-btn"
+                        onClick={() => startCreate(null, false)}
+                        title="File baru"
+                        disabled={!!addingAt || editingId !== null}
+                     >
+                        <Plus size={16} />
+                     </button>
+                     {showClearAll && (
+                        <button
+                           className="icon-btn file-manager__clear"
+                           onClick={() => setConfirmClearAll(true)}
+                           title="Hapus semua file di Local"
+                        >
+                           <Trash2 size={16} />
+                        </button>
+                     )}
+                  </div>
+               </>
+            )}
          </div>
 
          <div

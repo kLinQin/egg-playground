@@ -128,18 +128,8 @@ export type EditorSettings = {
  * Sumber file aktif editor.
  *
  * - 'local'  → data di localStorage (mode sekarang)
- * - 'disk'   → folder asli via File System Access API
  * - 'github' → repository yang di-pull
  *
- * Ketiganya eksklusif — ganti mode replace seluruh isi editor.
+ * Keduanya eksklusif — ganti mode replace seluruh isi editor.
  */
-export type FileSource = 'local' | 'disk' | 'github';
-
-/**
- * Metadata file yang di-load dari disk.
- * Dipakai untuk mapping FileItem (React state) ↔ path asli.
- */
-export type DiskFileMeta = {
-   /** path relatif dari root folder, mis. "src/App.tsx" */
-   path: string;
-};
+export type FileSource = 'local' | 'github';

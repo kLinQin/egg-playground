@@ -14,6 +14,7 @@ import {
    findNext,
    findPrevious,
 } from '@codemirror/search';
+import { undo, redo } from '@codemirror/commands';
 import { forEachDiagnostic } from '@codemirror/lint';
 import type { Extension } from '@codemirror/state';
 import type { FileItem, Theme, EditorSettings } from '../types';
@@ -261,6 +262,20 @@ export function Editor({
       }, 2000);
    };
 
+   const doUndo = () => {
+      const view = viewRef.current;
+      if (!view) return;
+      undo(view);
+      view.focus();
+   };
+
+   const doRedo = () => {
+      const view = viewRef.current;
+      if (!view) return;
+      redo(view);
+      view.focus();
+   };
+
    const doSelectAll = () => {
       const view = viewRef.current;
       if (!view) return;
@@ -350,6 +365,19 @@ export function Editor({
    const handleInsertBrackets = () => insertPair('[', ']');
    const handleInsertQuotes = () => insertPair('"', '"');
 
+   /* ---------- insert koma + spasi ---------- */
+   const handleInsertComma = () => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      const insert = ', ';
+      view.dispatch({
+         changes: { from, to, insert },
+         selection: { anchor: from + insert.length },
+      });
+      view.focus();
+   };
+
    const lineCount = file.content.split('\n').length;
    const charCount = file.content.length;
 
@@ -414,10 +442,13 @@ export function Editor({
             charCount={charCount}
             errors={lintCount.errors}
             warnings={lintCount.warnings}
+            onUndo={doUndo}
+            onRedo={doRedo}
             onSelectAll={doSelectAll}
             onCopy={() => void doCopy()}
             onCut={() => void doCut()}
             onPaste={() => void doPaste()}
+            onInsertComma={handleInsertComma}
             onInsertBrackets={handleInsertBrackets}
             onInsertQuotes={handleInsertQuotes}
          />

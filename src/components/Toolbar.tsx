@@ -7,10 +7,8 @@ import {
    Upload,
    Check,
    Folder,
-   FolderOpen,
    HardDrive,
    Trash2,
-   ChevronDown,
 } from 'lucide-react';
 import type { FontChoice, Theme, FileSource } from '../types';
 
@@ -30,8 +28,6 @@ type Props = {
    /* file source */
    source: FileSource;
    onChangeSource: (next: FileSource) => void;
-   fsSupported: boolean;
-   folderName: string | null;
 };
 
 export function Toolbar({
@@ -48,15 +44,10 @@ export function Toolbar({
    filesOpen,
    source,
    onChangeSource,
-   fsSupported,
-   folderName,
 }: Props) {
    const [fontOpen, setFontOpen] = useState(false);
    const fontRef = useRef<HTMLDivElement>(null);
    const fileRef = useRef<HTMLInputElement>(null);
-
-   const [sourceOpen, setSourceOpen] = useState(false);
-   const sourceRef = useRef<HTMLDivElement>(null);
 
    /* klik di luar → tutup dropdown font */
    useEffect(() => {
@@ -71,37 +62,8 @@ export function Toolbar({
       return () => document.removeEventListener('mousedown', onClick);
    }, [fontOpen]);
 
-   /* klik di luar → tutup dropdown source */
-   useEffect(() => {
-      if (!sourceOpen) return;
-      const onClick = (e: MouseEvent) => {
-         const target = e.target as Node;
-         if (sourceRef.current && !sourceRef.current.contains(target)) {
-            setSourceOpen(false);
-         }
-      };
-      document.addEventListener('mousedown', onClick);
-      return () => document.removeEventListener('mousedown', onClick);
-   }, [sourceOpen]);
-
-   /* ---------- label + icon source aktif ---------- */
-   const sourceLabel =
-      source === 'disk'
-         ? folderName ?? 'Folder'
-         : source === 'github'
-            ? 'GitHub'
-            : 'Local';
-
-   const SourceIcon =
-      source === 'disk'
-         ? FolderOpen
-         : source === 'github'
-            ? GitBranch
-            : HardDrive;
-
    /* ---------- handler pilih source ---------- */
    const handleSelectSource = (next: FileSource) => {
-      setSourceOpen(false);
       if (next === source) return;
       onChangeSource(next);
    };
@@ -117,59 +79,34 @@ export function Toolbar({
                <Folder size={16} />
             </button>
             <span className="toolbar__brand">Eggs</span>
+         </div>
 
-            {/* ---------- source dropdown ---------- */}
-            <span className="toolbar__divider" />
-
-            <div className="source-dropdown" ref={sourceRef}>
+         {/* ---------- source switch (center) ---------- */}
+         <div className="toolbar__center">
+            <div className="source-switch" role="tablist" aria-label="Sumber file">
                <button
-                  className="source-dropdown__trigger"
-                  onClick={() => setSourceOpen((v) => !v)}
-                  title={`Source: ${sourceLabel}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={source === 'local'}
+                  className={`source-switch__btn ${source === 'local' ? 'source-switch__btn--active' : ''}`}
+                  onClick={() => handleSelectSource('local')}
+                  title="Local (localStorage)"
                >
-                  <SourceIcon size={14} />
-                  <span>{sourceLabel}</span>
-                  <ChevronDown size={12} />
+                  <HardDrive size={13} />
+                  <span>Local</span>
                </button>
 
-               {sourceOpen && (
-                  <div className="dropdown__menu dropdown--menu-left source-dropdown__menu">
-                     <button
-                        className="dropdown__item"
-                        onClick={() => handleSelectSource('local')}
-                     >
-                        <span className="dropdown__item-left">
-                           <HardDrive size={14} />
-                           <span>Local</span>
-                        </span>
-                        {source === 'local' && <Check size={14} />}
-                     </button>
-
-                     {fsSupported && (
-                        <button
-                           className="dropdown__item"
-                           onClick={() => handleSelectSource('disk')}
-                        >
-                           <span className="dropdown__item-left">
-                              <FolderOpen size={14} />
-                              <span>Folder</span>
-                           </span>
-                           {source === 'disk' && <Check size={14} />}
-                        </button>
-                     )}
-
-                     <button
-                        className="dropdown__item"
-                        onClick={() => handleSelectSource('github')}
-                     >
-                        <span className="dropdown__item-left">
-                           <GitBranch size={14} />
-                           <span>GitHub</span>
-                        </span>
-                        {source === 'github' && <Check size={14} />}
-                     </button>
-                  </div>
-               )}
+               <button
+                  type="button"
+                  role="tab"
+                  aria-selected={source === 'github'}
+                  className={`source-switch__btn ${source === 'github' ? 'source-switch__btn--active' : ''}`}
+                  onClick={() => handleSelectSource('github')}
+                  title="GitHub repository"
+               >
+                  <GitBranch size={13} />
+                  <span>GitHub</span>
+               </button>
             </div>
          </div>
 
