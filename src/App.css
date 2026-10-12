@@ -1831,11 +1831,16 @@ body {
     padding: 0 8px;
     padding-bottom: env(safe-area-inset-bottom);
     gap: 6px;
-    height: 24px;
+    height: 26px;
   }
 
   .status-bar__spacer~.status-bar__item {
     display: none;
+  }
+
+  /* Ln/Col tetap tampil di mobile (override) */
+  .status-bar__spacer~.status-bar__item--pos {
+    display: inline;
   }
 
   .status-bar__spacer~.status-bar__sep {
@@ -2275,9 +2280,13 @@ body {
 }
 
 .local-panel__hint {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   font-size: 11px;
   color: var(--text-muted);
-  padding: 4px 0;
+  padding: 8px 10px;
 }
 
 .local-panel__mode-label {
@@ -2478,7 +2487,7 @@ body {
 /* ===================== Status bar: mobile action bar ===================== */
 .status-bar__actions {
   position: relative;
-  display: none;
+  display: inline-flex;
   align-items: center;
 }
 
@@ -2504,10 +2513,6 @@ body {
 }
 
 /* ===================== Status bar: mode aksi (horizontal scroll) ===================== */
-.status-bar--actions {
-  gap: 0;
-  padding: 0;
-}
 
 .status-bar__action-scroll {
   flex: 1;
@@ -2575,11 +2580,7 @@ body {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .status-bar__actions {
-    display: inline-flex;
-  }
-}
+
 
 .editor-action-toast {
   position: absolute;
@@ -2623,4 +2624,113 @@ textarea:focus-visible,
 select:focus,
 select:focus-visible {
   outline: none;
+}
+
+/* ---------- Status bar: notif color variants ---------- */
+.status-bar--panel.status-bar--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-top-color: #10b981;
+}
+
+.status-bar--panel.status-bar--error {
+  background: #fef2f2;
+  color: #991b1b;
+  border-top-color: #ef4444;
+}
+
+.status-bar--panel.status-bar--busy {
+  background: #eff6ff;
+  color: #1e40af;
+  border-top-color: #3b82f6;
+}
+
+[data-theme='dark'] .status-bar--panel.status-bar--success {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+
+[data-theme='dark'] .status-bar--panel.status-bar--error {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+[data-theme='dark'] .status-bar--panel.status-bar--busy {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+/* ---------- Status bar: notif text ---------- */
+.status-bar__notif {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.status-bar--panel.status-bar--success svg,
+.status-bar--panel.status-bar--error svg,
+.status-bar--panel.status-bar--busy svg {
+  color: inherit;
+}
+
+/* ---------- Git panel: history button di bottom bar ---------- */
+.status-bar__history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-bar__history-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.status-bar__history-btn.is-active {
+  background: var(--active-bg);
+  color: var(--active-text);
+  border-color: var(--border);
+}
+
+/* ---------- Git panel: history view full ---------- */
+.commit-history--full {
+  flex: 1;
+  min-height: 0;
+  border-top: none;
+}
+
+/* ---------- Changes header: inline confirm restore all ---------- */
+.changes__confirm-text {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.changes__confirm-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.changes__confirm-ok {
+  color: var(--danger);
+}
+
+.changes__confirm-ok:hover:not(:disabled) {
+  color: var(--danger-hover);
+  background: var(--hover);
 }

@@ -50,6 +50,7 @@ type Props = {
    onClearAll: () => void;
 
    changes: ChangeItem[];
+   pendingIds: Set<string>;
    onStage: (fileId: string) => void;
    onUnstage: (fileId: string) => void;
    onRestore: (fileId: string) => void;
@@ -229,6 +230,7 @@ export function GitPanel({
    onPush,
    onClearAll,
    changes,
+   pendingIds,
    onStage,
    onUnstage,
    onRestore,
@@ -276,6 +278,24 @@ export function GitPanel({
    const [commitsError, setCommitsError] = useState<string | null>(null);
 
    const [configOpen, setConfigOpen] = useState(false);
+   const [historyOpen, setHistoryOpen] = useState(false);
+
+   /* ---------- inline confirm state ---------- */
+   const [confirmRestoreAll, setConfirmRestoreAll] = useState(false);
+   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
+
+   /* Escape → cancel inline confirm */
+   useEffect(() => {
+      if (!confirmRestoreAll && !confirmRestoreId) return;
+      const onKey = (e: KeyboardEvent) => {
+         if (e.key === 'Escape') {
+            setConfirmRestoreAll(false);
+            setConfirmRestoreId(null);
+         }
+      };
+      document.addEventListener('keydown', onKey);
+      return () => document.removeEventListener('keydown', onKey);
+   }, [confirmRestoreAll, confirmRestoreId]);
 
    const config: GitConfig = { token, owner, repo, branch };
    const isBusy = status.state === 'busy';
@@ -287,6 +307,17 @@ export function GitPanel({
    const hasStaged = stagedChanges.length > 0;
 
    const showConfig = !canAct || configOpen;
+
+   /* ---------- notif bottom bar ---------- */
+   const isNotifying = status.state !== 'idle';
+   const notifClass =
+      status.state === 'success'
+         ? 'status-bar--success'
+         : status.state === 'error'
+            ? 'status-bar--error'
+            : status.state === 'busy'
+               ? 'status-bar--busy'
+               : '';
 
    const fetchOwners = async (t: string) => {
       setOwnersLoading(true);
@@ -505,6 +536,9 @@ export function GitPanel({
       setVerifyState({ state: 'idle' });
       setDeviceState({ state: 'idle' });
       setConfigOpen(false);
+      setHistoryOpen(false);
+      setConfirmRestoreAll(false);
+      setConfirmRestoreId(null);
       onClearAll();
    };
 
@@ -745,231 +779,322 @@ export function GitPanel({
          {/* ===================== MAIN VIEW ===================== */}
          {!showConfig && (
             <>
-               <div className="git-panel__actions-section">
-                  <label className="field">
-                     <span>Commit message</span>
-                     <input
-                        value={commitMessage}
-                        onChange={(e) => setCommitMessage(e.target.value)}
-                        placeholder="Update from Eggs"
-                     />
-                  </label>
+               {historyOpen ? (
+                  /* ---------- HISTORY VIEW ---------- */
+                  <div className="commit-history commit-history--full">
+                     <div className="commit-history__header">
+                        <GitCommit size={14} />
+                        <span className="commit-history__title">History</span>
+                        <button
+                           className="icon-btn"
+                           onClick={handleRefreshCommits}
+                           disabled={commitsLoading}
+                           title="Refresh"
+                        >
+                           {commitsLoading ? (
+                              <Loader2 size={12} className="spin" />
+                           ) : (
+                              <RefreshCw size={12} />
+                           )}
+                        </button>
+                        <button
+                           className="icon-btn"
+                           onClick={() => setHistoryOpen(false)}
+                           title="Tutup history"
+                        >
+                           <X size={14} />
+                        </button>
+                     </div>
 
-                  <div className="git-panel__actions">
-                     <button
-                        className="btn"
-                        disabled={!canAct}
-                        onClick={() => onPull(config)}
-                     >
-                        <ArrowDown size={14} /> Pull
-                     </button>
-                     <button
-                        className="btn btn--primary"
-                        disabled={!canAct || !commitMessage.trim() || !hasStaged}
-                        onClick={() => onPush(config, commitMessage.trim())}
-                        title={
-                           !hasStaged
-                              ? 'Tidak ada file yang di-stage'
-                              : 'Push file yang di-stage'
-                        }
-                     >
-                        <ArrowUp size={14} /> Push
-                     </button>
-                  </div>
-               </div>
+                     <div className="commit-history__body">
+                        {commitsError && (
+                           <div className="commit-history__error">{commitsError}</div>
+                        )}
 
-               <div className="changes">
-                  <div className="changes__header">
-                     <span className="changes__title">
-                        Changes ({changes.length})
-                     </span>
-                     <div className="changes__actions">
-                        {unstagedChanges.length > 0 && (
-                           <button
-                              className="icon-btn"
-                              onClick={onStageAll}
-                              title="Stage semua"
-                           >
-                              <Plus size={14} />
-                           </button>
+                        {!commitsError && commits.length === 0 && !commitsLoading && (
+                           <div className="commit-history__empty">
+                              Belum ada commit.
+                           </div>
                         )}
-                        {stagedChanges.length > 0 && (
-                           <button
-                              className="icon-btn"
-                              onClick={onUnstageAll}
-                              title="Unstage semua"
-                           >
-                              <Minus size={14} />
-                           </button>
-                        )}
-                        {changes.length > 0 && (
-                           <button
-                              className="icon-btn"
-                              onClick={onRestoreAll}
-                              title="Restore semua"
-                           >
-                              <Undo2 size={14} />
-                           </button>
+
+                        {commits.length > 0 && (
+                           <ul className="commit-history__list">
+                              {commits.map((c) => (
+                                 <li key={c.sha} className="commit-item">
+                                    {c.authorAvatarUrl ? (
+                                       <img
+                                          src={c.authorAvatarUrl}
+                                          alt={c.authorName}
+                                          className="commit-item__avatar"
+                                       />
+                                    ) : (
+                                       <div className="commit-item__avatar commit-item__avatar--fallback">
+                                          {c.authorName.charAt(0).toUpperCase()}
+                                       </div>
+                                    )}
+
+                                    <div className="commit-item__body">
+                                       <div
+                                          className="commit-item__message"
+                                          title={c.message}
+                                       >
+                                          {c.message}
+                                       </div>
+                                       <div className="commit-item__meta">
+                                          <span>{c.authorLogin ?? c.authorName}</span>
+                                          <span>·</span>
+                                          <span>{relativeTime(c.date)}</span>
+                                          <span>·</span>
+                                          <code>{c.shaShort}</code>
+                                       </div>
+                                    </div>
+
+                                    <a
+                                       href={c.htmlUrl}
+                                       target="_blank"
+                                       rel="noreferrer"
+                                       className="icon-btn commit-item__link"
+                                       title="Buka di GitHub"
+                                    >
+                                       <ExternalLink size={12} />
+                                    </a>
+                                 </li>
+                              ))}
+                           </ul>
                         )}
                      </div>
                   </div>
+               ) : (
+                  /* ---------- CHANGES VIEW ---------- */
+                  <>
+                     <div className="git-panel__actions-section">
+                        <label className="field">
+                           <span>Commit message</span>
+                           <input
+                              value={commitMessage}
+                              onChange={(e) => setCommitMessage(e.target.value)}
+                              placeholder="Update from Eggs"
+                           />
+                        </label>
 
-                  <div className="changes__body">
-                     {changes.length === 0 && (
-                        <div className="changes__empty">
-                           Tidak ada perubahan.
-                        </div>
-                     )}
-
-                     {changes.map((c) => (
-                        <div key={c.file.id} className="change-item">
-                           <span
-                              className={`change-item__status change-item__status--${c.status}`}
-                              title={c.status}
-                           >
-                              {statusLabel(c.status)}
-                           </span>
-
-                           <StatusIcon status={c.status} />
-
-                           <span className="change-item__name" title={c.file.name}>
-                              {c.file.name}
-                           </span>
-
-                           {c.staged ? (
-                              <button
-                                 className="icon-btn change-item__action"
-                                 onClick={() => onUnstage(c.file.id)}
-                                 title="Unstage"
-                              >
-                                 <Minus size={14} />
-                              </button>
-                           ) : (
-                              <button
-                                 className="icon-btn change-item__action"
-                                 onClick={() => onStage(c.file.id)}
-                                 title="Stage"
-                              >
-                                 <Plus size={14} />
-                              </button>
-                           )}
-
+                        <div className="git-panel__actions">
                            <button
-                              className="icon-btn change-item__action"
-                              onClick={() => onRestore(c.file.id)}
-                              title="Restore"
+                              className="btn"
+                              disabled={!canAct}
+                              onClick={() => onPull(config)}
                            >
-                              <Undo2 size={14} />
+                              <ArrowDown size={14} /> Pull
+                           </button>
+                           <button
+                              className="btn btn--primary"
+                              disabled={!canAct || !commitMessage.trim() || !hasStaged}
+                              onClick={() => onPush(config, commitMessage.trim())}
+                              title={
+                                 !hasStaged
+                                    ? 'Tidak ada file yang di-stage'
+                                    : 'Push file yang di-stage'
+                              }
+                           >
+                              <ArrowUp size={14} /> Push
                            </button>
                         </div>
-                     ))}
-                  </div>
-               </div>
+                     </div>
 
-               <div className="commit-history">
-                  <div className="commit-history__header">
-                     <GitCommit size={14} />
-                     <span className="commit-history__title">History</span>
-                     <button
-                        className="icon-btn"
-                        onClick={handleRefreshCommits}
-                        disabled={commitsLoading}
-                        title="Refresh"
-                     >
-                        {commitsLoading ? (
-                           <Loader2 size={12} className="spin" />
-                        ) : (
-                           <RefreshCw size={12} />
-                        )}
-                     </button>
-                  </div>
-
-                  <div className="commit-history__body">
-                     {commitsError && (
-                        <div className="commit-history__error">{commitsError}</div>
-                     )}
-
-                     {!commitsError && commits.length === 0 && !commitsLoading && (
-                        <div className="commit-history__empty">
-                           Belum ada commit.
-                        </div>
-                     )}
-
-                     {commits.length > 0 && (
-                        <ul className="commit-history__list">
-                           {commits.map((c) => (
-                              <li key={c.sha} className="commit-item">
-                                 {c.authorAvatarUrl ? (
-                                    <img
-                                       src={c.authorAvatarUrl}
-                                       alt={c.authorName}
-                                       className="commit-item__avatar"
-                                    />
-                                 ) : (
-                                    <div className="commit-item__avatar commit-item__avatar--fallback">
-                                       {c.authorName.charAt(0).toUpperCase()}
-                                    </div>
-                                 )}
-
-                                 <div className="commit-item__body">
-                                    <div
-                                       className="commit-item__message"
-                                       title={c.message}
+                     <div className="changes">
+                        <div className="changes__header">
+                           {confirmRestoreAll ? (
+                              <>
+                                 <span className="changes__confirm-text">
+                                    Buang semua perubahan?
+                                 </span>
+                                 <div className="changes__confirm-actions">
+                                    <button
+                                       className="icon-btn changes__confirm-ok"
+                                       onClick={() => {
+                                          setConfirmRestoreAll(false);
+                                          onRestoreAll();
+                                       }}
+                                       title="Ya, buang semua"
                                     >
-                                       {c.message}
-                                    </div>
-                                    <div className="commit-item__meta">
-                                       <span>{c.authorLogin ?? c.authorName}</span>
-                                       <span>·</span>
-                                       <span>{relativeTime(c.date)}</span>
-                                       <span>·</span>
-                                       <code>{c.shaShort}</code>
-                                    </div>
+                                       <Check size={14} />
+                                    </button>
+                                    <button
+                                       className="icon-btn"
+                                       onClick={() => setConfirmRestoreAll(false)}
+                                       title="Batal"
+                                    >
+                                       <X size={14} />
+                                    </button>
                                  </div>
+                              </>
+                           ) : (
+                              <>
+                                 <span className="changes__title">
+                                    Changes ({changes.length})
+                                 </span>
+                                 <div className="changes__actions">
+                                    {unstagedChanges.length > 0 && (
+                                       <button
+                                          className="icon-btn"
+                                          onClick={onStageAll}
+                                          title="Stage semua"
+                                       >
+                                          <Plus size={14} />
+                                       </button>
+                                    )}
+                                    {stagedChanges.length > 0 && (
+                                       <button
+                                          className="icon-btn"
+                                          onClick={onUnstageAll}
+                                          title="Unstage semua"
+                                       >
+                                          <Minus size={14} />
+                                       </button>
+                                    )}
+                                    {changes.length > 0 && (
+                                       <button
+                                          className="icon-btn"
+                                          onClick={() => setConfirmRestoreAll(true)}
+                                          title="Restore semua"
+                                       >
+                                          <Undo2 size={14} />
+                                       </button>
+                                    )}
+                                 </div>
+                              </>
+                           )}
+                        </div>
 
-                                 <a
-                                    href={c.htmlUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="icon-btn commit-item__link"
-                                    title="Buka di GitHub"
-                                 >
-                                    <ExternalLink size={12} />
-                                 </a>
-                              </li>
-                           ))}
-                        </ul>
-                     )}
-                  </div>
-               </div>
+                        <div className="changes__body">
+                           {changes.length === 0 && (
+                              <div className="changes__empty">
+                                 Tidak ada perubahan.
+                              </div>
+                           )}
+
+                           {changes.map((c) => {
+                              const isSaved = pendingIds.has(c.file.id);
+                              const isConfirming = confirmRestoreId === c.file.id;
+
+                              /* ---------- inline confirm per-item ---------- */
+                              if (isConfirming) {
+                                 return (
+                                    <div
+                                       key={c.file.id}
+                                       className="change-item change-item--confirming"
+                                    >
+                                       <span className="change-item__confirm-text">
+                                          Buang perubahan?
+                                       </span>
+                                       <div className="change-item__confirm-actions">
+                                          <button
+                                             className="icon-btn change-item__confirm-ok"
+                                             onClick={() => {
+                                                setConfirmRestoreId(null);
+                                                onRestore(c.file.id);
+                                             }}
+                                             title="Ya, buang"
+                                          >
+                                             <Check size={14} />
+                                          </button>
+                                          <button
+                                             className="icon-btn"
+                                             onClick={() => setConfirmRestoreId(null)}
+                                             title="Batal"
+                                          >
+                                             <X size={14} />
+                                          </button>
+                                       </div>
+                                    </div>
+                                 );
+                              }
+
+                              /* ---------- normal mode ---------- */
+                              return (
+                                 <div key={c.file.id} className="change-item">
+                                    <span
+                                       className={`change-item__status change-item__status--${c.status}`}
+                                       title={c.status}
+                                    >
+                                       {statusLabel(c.status)}
+                                    </span>
+
+                                    <StatusIcon status={c.status} />
+
+                                    <span className="change-item__name" title={c.file.name}>
+                                       {c.file.name}
+                                    </span>
+
+                                    {isSaved && (
+                                       <span
+                                          className="change-item__saved"
+                                          title="Sudah disave, tunggu Push"
+                                       >
+                                          <Check size={12} />
+                                          <span>saved</span>
+                                       </span>
+                                    )}
+
+                                    {c.staged ? (
+                                       <button
+                                          className="icon-btn change-item__action"
+                                          onClick={() => onUnstage(c.file.id)}
+                                          title="Unstage"
+                                       >
+                                          <Minus size={14} />
+                                       </button>
+                                    ) : (
+                                       <button
+                                          className="icon-btn change-item__action"
+                                          onClick={() => onStage(c.file.id)}
+                                          title="Stage"
+                                       >
+                                          <Plus size={14} />
+                                       </button>
+                                    )}
+
+                                    <button
+                                       className="icon-btn change-item__action"
+                                       onClick={() => setConfirmRestoreId(c.file.id)}
+                                       title="Restore"
+                                    >
+                                       <Undo2 size={14} />
+                                    </button>
+                                 </div>
+                              );
+                           })}
+                        </div>
+                     </div>
+                  </>
+               )}
             </>
          )}
 
-         {/* ===================== Bottom bar ===================== */}
-         {canAct && (
-            <div className="status-bar status-bar--panel">
-               <GitBranch size={11} />
-               <span className="status-bar__item">
-                  {owner}/{repo}
-               </span>
-               <span className="status-bar__sep" />
-               <span className="status-bar__item">{branch}</span>
-               {commits.length > 0 && (
-                  <>
-                     <span className="status-bar__sep" />
-                     <span className="status-bar__item">
-                        {commits.length} commit{commits.length !== 1 ? 's' : ''}
-                     </span>
-                  </>
-               )}
-            </div>
-         )}
-
-         {status.state !== 'idle' && (
-            <div className={`git-status git-status--${status.state}`}>
-               {status.message}
-            </div>
-         )}
+         {/* ===================== Bottom bar (normal / notif) ===================== */}
+         <div className={`status-bar status-bar--panel ${isNotifying ? notifClass : ''}`}>
+            {isNotifying ? (
+               <span className="status-bar__notif">{status.message}</span>
+            ) : (
+               <>
+                  <GitBranch size={11} />
+                  <span className="status-bar__item">
+                     {owner || '—'}/{repo || '—'}
+                  </span>
+                  <span className="status-bar__sep" />
+                  <span className="status-bar__item">{branch || '—'}</span>
+                  <span className="status-bar__spacer" />
+                  <button
+                     type="button"
+                     className={`status-bar__history-btn ${historyOpen ? 'is-active' : ''}`}
+                     onClick={() => setHistoryOpen((v) => !v)}
+                     title={historyOpen ? 'Tutup history' : 'Buka history'}
+                  >
+                     <GitCommit size={12} />
+                     <span>History ({commits.length})</span>
+                  </button>
+               </>
+            )}
+         </div>
       </div>
    );
 }

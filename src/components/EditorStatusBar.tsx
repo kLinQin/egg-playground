@@ -110,7 +110,22 @@ export function EditorStatusBar({
    /* ===================== MODE AKSI ===================== */
    if (actionsMode) {
       return (
-         <div className="status-bar status-bar--actions">
+         <div className="status-bar">
+            {/* ---------- X — di posisi yang sama dengan Wrench ---------- */}
+            <div className="status-bar__actions">
+               <button
+                  type="button"
+                  className="status-bar__actions-btn is-active"
+                  onClick={() => setActionsMode(false)}
+                  title="Tutup aksi editor"
+                  aria-label="Tutup aksi editor"
+               >
+                  <X size={12} />
+               </button>
+            </div>
+
+            <span className="status-bar__sep" />
+
             <div className="status-bar__action-scroll">
                <button
                   type="button"
@@ -215,16 +230,6 @@ export function EditorStatusBar({
                   <span>Quote</span>
                </button>
             </div>
-
-            <button
-               type="button"
-               className="status-bar__actions-btn is-active"
-               onClick={() => setActionsMode(false)}
-               title="Tutup aksi editor"
-               aria-label="Tutup aksi editor"
-            >
-               <X size={14} />
-            </button>
          </div>
       );
    }
@@ -232,9 +237,18 @@ export function EditorStatusBar({
    /* ===================== MODE NORMAL ===================== */
    return (
       <div className="status-bar">
-         <span className="status-bar__item">
-            Ln {line}, Col {col}
-         </span>
+         {/* ---------- Wrench toggle (paling kiri) ---------- */}
+         <div className="status-bar__actions">
+            <button
+               type="button"
+               className="status-bar__actions-btn"
+               onClick={() => setActionsMode(true)}
+               title="Aksi editor"
+               aria-label="Aksi editor"
+            >
+               <Wrench size={12} />
+            </button>
+         </div>
 
          <span className="status-bar__sep" />
 
@@ -338,18 +352,11 @@ export function EditorStatusBar({
 
          <span className="status-bar__item">{charCount} chars</span>
 
-         {/* ---------- mobile action bar toggle ---------- */}
-         <div className="status-bar__actions">
-            <button
-               type="button"
-               className="status-bar__actions-btn"
-               onClick={() => setActionsMode(true)}
-               title="Aksi editor"
-               aria-label="Aksi editor"
-            >
-               <Wrench size={12} />
-            </button>
-         </div>
+         <span className="status-bar__sep" />
+
+         <span className="status-bar__item status-bar__item--pos">
+            Ln {line}, Col {col}
+         </span>
       </div>
    );
 }

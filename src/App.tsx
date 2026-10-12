@@ -247,17 +247,6 @@ function App() {
   }, [files]);
 
   useEffect(() => {
-    setPendingIds((prev) => {
-      const validIds = new Set(files.map((f) => f.id));
-      const next = new Set<string>();
-      for (const id of prev) {
-        if (validIds.has(id)) next.add(id);
-      }
-      return next.size === prev.size ? prev : next;
-    });
-  }, [files]);
-
-  useEffect(() => {
     if (tabs.length === 0 && files.length > 0) {
       const firstFile = files.find((f) => f.kind === 'file' && !f.deleted);
       if (firstFile) openTab(firstFile.id);
@@ -322,8 +311,6 @@ function App() {
 
   const handleSave = async () => {
     if (!activeFile || activeFile.kind !== 'file') return;
-
-    if (source === 'github') return;
 
     try {
       setFiles((prev) => {
@@ -831,7 +818,6 @@ function App() {
 
     closeAllTabs();
     setStagedIds(new Set());
-    setPendingIds(new Set());
     setGitStatus({ state: 'idle' });
     setPreviewOpen(false);
 
@@ -1061,6 +1047,7 @@ function App() {
     });
 
     setStagedIds(new Set());
+    setPendingIds(new Set());
 
     const deleteMsg = result.deleted > 0 ? ` · ${result.deleted} dihapus` : '';
     flashSuccess(
@@ -1260,6 +1247,7 @@ function App() {
                     onPush={handlePush}
                     onClearAll={handleClearAll}
                     changes={changes}
+                    pendingIds={pendingIds}
                     onStage={handleStage}
                     onUnstage={handleUnstage}
                     onRestore={handleDiscard}
@@ -1269,14 +1257,15 @@ function App() {
                   />
                 </Suspense>
               ) : (
-                <LocalPanel
-                  changes={changes}
-                  pendingIds={pendingIds}
-                  onDiscard={handleDiscard}
-                  onDiscardAll={handleDiscardAll}
-                  onSaveAll={() => void handleSaveAll()}
-                  saving={saving}
-                />
+                  <LocalPanel
+                    status={gitStatus}
+                    changes={changes}
+                    pendingIds={pendingIds}
+                    onDiscard={handleDiscard}
+                    onDiscardAll={handleDiscardAll}
+                    onSaveAll={() => void handleSaveAll()}
+                    saving={saving}
+                  />
               )}
             </div>
           </>

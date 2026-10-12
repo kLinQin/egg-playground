@@ -9,9 +9,10 @@ import {
    Check,
    X,
 } from 'lucide-react';
-import type { ChangeItem } from '../types';
+import type { ChangeItem, GitStatus } from '../types';
 
 type Props = {
+   status: GitStatus;
    changes: ChangeItem[];
    pendingIds: Set<string>;
    onDiscard: (fileId: string) => void;
@@ -33,6 +34,7 @@ function StatusIcon({ status }: { status: ChangeItem['status'] }) {
 }
 
 export function LocalPanel({
+   status,
    changes,
    pendingIds,
    onDiscard,
@@ -61,6 +63,17 @@ export function LocalPanel({
 
    /* ---------- mode label ---------- */
    const modeLabel = 'local Storage';
+
+   /* ---------- notif bottom bar ---------- */
+   const isNotifying = status.state !== 'idle';
+   const notifClass =
+      status.state === 'success'
+         ? 'status-bar--success'
+         : status.state === 'error'
+            ? 'status-bar--error'
+            : status.state === 'busy'
+               ? 'status-bar--busy'
+               : '';
 
    /* ---------- render satu baris change ---------- */
    const renderChange = (c: ChangeItem) => {
@@ -222,6 +235,18 @@ export function LocalPanel({
                Tidak ada perubahan.
             </div>
          )}
+
+         {/* ---------- bottom bar (normal / notif) ---------- */}
+         <div className={`status-bar status-bar--panel ${isNotifying ? notifClass : ''}`}>
+            {isNotifying ? (
+               <span className="status-bar__notif">{status.message}</span>
+            ) : (
+               <>
+                  <HardDrive size={11} />
+                  <span className="status-bar__item">local Storage</span>
+               </>
+            )}
+         </div>
       </div>
    );
 }
