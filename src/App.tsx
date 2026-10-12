@@ -360,6 +360,7 @@ function App() {
           isNew: false,
           expanded: false,
           lastSyncedPath: entry.path,
+          languageOverride: null,
         });
       }
 
@@ -386,6 +387,7 @@ function App() {
             savedContent: content,
             isNew: false,
             lastSyncedPath: entry.path,
+            languageOverride: null,
           });
         } catch {
           /* skip file yang gagal dibaca */
@@ -747,6 +749,27 @@ function App() {
       if (!prev.has(activeFile.id)) return prev;
       const next = new Set(prev);
       next.delete(activeFile.id);
+      return next;
+    });
+  };
+
+  /* ---------- ganti bahasa override ---------- */
+  const handleLanguageOverrideChange = (id: string | null) => {
+    if (!activeFile || activeFile.kind !== 'file') return;
+
+    setFiles((prev) => {
+      const next = prev.map((f) =>
+        f.id === activeFile.id ? { ...f, languageOverride: id } : f
+      );
+
+      if (source === 'local') {
+        try {
+          localStorage.setItem('webden-files', JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+      }
+
       return next;
     });
   };
@@ -1556,6 +1579,7 @@ function App() {
               settings={settings}
               previewOpen={previewOpen}
               onChange={handleContentChange}
+              onLanguageOverrideChange={handleLanguageOverrideChange}
               resetKey={editorResetKey}
             />
           ) : (

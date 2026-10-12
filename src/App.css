@@ -195,13 +195,12 @@ body {
 
 .dropdown__menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 2px);
   right: 0;
   min-width: 200px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: var(--shadow);
+  border-radius: 1px;
   padding: 4px;
   z-index: 100;
 }
@@ -256,7 +255,7 @@ body {
   width: 70px;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 2px;
   background: var(--bg);
   color: var(--text);
   font-family: inherit;
@@ -832,8 +831,7 @@ body {
 .dialog {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border-radius: 1px;
   padding: 20px;
   min-width: 320px;
   max-width: 90vw;
@@ -865,9 +863,8 @@ body {
   left: 50%;
   transform: translateX(-50%);
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: 1px;
   font-size: 13px;
-  box-shadow: var(--shadow);
   cursor: pointer;
   z-index: 1001;
 }
@@ -1205,8 +1202,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 3px 10px;
-  padding-bottom: calc(3px + env(safe-area-inset-bottom));
+  padding: 0 10px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--bg-muted);
   border-top: 1px solid var(--border);
   font-size: 11px;
@@ -1214,6 +1211,8 @@ body {
   font-family: inherit;
   flex-shrink: 0;
   user-select: none;
+  height: 24px;
+  box-sizing: border-box;
 }
 
 .status-bar__item {
@@ -1271,8 +1270,7 @@ body {
   max-width: 720px;
   background: var(--bg-alt);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border-radius: 1px;
   padding: 24px;
 }
 
@@ -1620,7 +1618,6 @@ body {
   width: 82vw;
   max-width: 320px;
   z-index: 201;
-  box-shadow: var(--shadow);
   animation: drawer-slide-in 0.2s ease-out;
 }
 
@@ -1693,8 +1690,10 @@ body {
 
   .status-bar {
     font-size: 10px;
-    padding: 2px 8px;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom);
     gap: 6px;
+    height: 22px;
   }
 
   /* Sembunyikan line count & char count di mobile */
@@ -1976,15 +1975,14 @@ body {
 /* ===================== Move dropdown ===================== */
 .move-menu {
   position: absolute;
-  right: 8px;
+  right: 4px;
   top: calc(100% + 4px);
-  min-width: 160px;
+  min-width: 180px;
   max-height: 220px;
   overflow-y: auto;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: var(--shadow);
+  border-radius: 1px;
   padding: 4px;
   z-index: 50;
 }
@@ -2034,13 +2032,12 @@ body {
 
 .action-menu {
   position: absolute;
-  right: 8px;
+  right: 4px;
   top: calc(100% + 4px);
   min-width: 140px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: var(--shadow);
+  border-radius: 1px;
   padding: 4px;
   z-index: 60;
   display: flex;
@@ -2255,4 +2252,262 @@ body {
 [data-theme='dark'] .change-item__saved {
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
+}
+
+/* ===================== Status bar: language dropdown ===================== */
+.status-bar__lang {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-bar__lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1;
+  height: 16px;
+}
+
+.status-bar__lang-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.status-bar__lang-icon {
+  flex-shrink: 0;
+}
+
+.status-bar__lang-label {
+  white-space: nowrap;
+}
+
+.status-bar__lang-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+/* ---------- dropdown menu ---------- */
+.status-bar__lang-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: 4px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.status-bar__lang-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: 3px;
+  text-align: left;
+}
+
+.status-bar__lang-item:hover {
+  background: var(--hover);
+}
+
+.status-bar__lang-item.is-active {
+  background: var(--active-bg);
+  color: var(--active-text);
+}
+
+.status-bar__lang-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-bar__lang-check {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.status-bar__lang-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ---------- mobile: sesuaikan ---------- */
+@media (max-width: 768px) {
+  .status-bar__lang-btn {
+    font-size: 10px;
+    padding: 0 5px;
+    height: 15px;
+  }
+
+  .status-bar__lang-menu {
+    min-width: 180px;
+    max-height: 260px;
+  }
+
+  .status-bar__lang-item {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+}
+
+/* ===================== Source dropdown: mobile fix ===================== */
+@media (max-width: 768px) {
+  .source-dropdown__menu {
+    /* paksa nempel kiri trigger, jangan pakai right: 0 default */
+    right: auto !important;
+    left: 0 !important;
+
+    /* jangan melebihi lebar layar */
+    min-width: 160px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* ===================== Status bar: mobile action bar ===================== */
+.status-bar__actions {
+  position: relative;
+  display: none;
+  align-items: center;
+}
+
+.status-bar__actions-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.status-bar__actions-btn:hover,
+.status-bar__actions-btn.is-active {
+  background: var(--hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ---------- dropdown menu ---------- */
+.status-bar__actions-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: 1px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.status-bar__actions-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 3px;
+  text-align: left;
+}
+
+.status-bar__actions-item:hover {
+  background: var(--hover);
+}
+
+.status-bar__actions-item:active {
+  background: var(--active-bg);
+  color: var(--active-text);
+}
+
+.status-bar__actions-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ---------- tampilkan hanya di mobile ---------- */
+@media (max-width: 768px) {
+  .status-bar__actions {
+    display: inline-flex;
+  }
+}
+
+/* ---------- action toast (pesan singkat dari editor) ---------- */
+.editor-action-toast {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  z-index: 300;
+  pointer-events: none;
+  animation: toast-fade 0.2s ease-out;
+}
+
+[data-theme='dark'] .editor-action-toast {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+}
+
+@keyframes toast-fade {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }

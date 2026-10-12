@@ -17,7 +17,11 @@ import {
 import { forEachDiagnostic } from '@codemirror/lint';
 import type { Extension } from '@codemirror/state';
 import type { FileItem, Theme, EditorSettings } from '../types';
-import { findLanguage, loadLanguageExtension } from '../languages';
+import {
+   findLanguage,
+   loadLanguageExtension,
+   resolveLanguage,
+} from '../languages';
 import { lintExtensions } from '../editorLint';
 import { EditorStatusBar } from './EditorStatusBar';
 
@@ -32,6 +36,8 @@ type Props = {
    settings: EditorSettings;
    previewOpen: boolean;
    onChange: (content: string) => void;
+   /** user pilih bahasa manual dari dropdown di status bar */
+   onLanguageOverrideChange: (id: string | null) => void;
    /** Naikkan nilainya untuk force remount CodeMirror (mis. saat discard) */
    resetKey: number;
 };
@@ -43,9 +49,9 @@ export function Editor({
    settings,
    previewOpen,
    onChange,
+   onLanguageOverrideChange,
    resetKey,
 }: Props) {
-   const lang = findLanguage(file.name);
    const viewRef = useRef<EditorView | null>(null);
    const cmRef = useRef<ReactCodeMirrorRef>(null);
 
@@ -53,28 +59,37 @@ export function Editor({
    const [lintCount, setLintCount] = useState({ errors: 0, warnings: 0 });
    const [langExtension, setLangExtension] = useState<Extension | null>(null);
    const [editorKey, setEditorKey] = useState(0);
+   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-   /* ---------- force remount saat file.id berubah atau resetKey berubah ---------- */
+   /* ---------- bahasa efektif ---------- */
+   const autoLang = useMemo(() => findLanguage(file.name), [file.name]);
+   const override = file.languageOverride ?? null;
+   const lang = useMemo(
+      () => resolveLanguage(file.name, override),
+      [file.name, override]
+   );
+
+   /* ---------- force remount saat file.id / resetKey / bahasa override berubah ---------- */
    useEffect(() => {
       setEditorKey((k) => k + 1);
-   }, [file.id, resetKey]);
+   }, [file.id, resetKey, override]);
 
    /* ---------- load bahasa secara lazy (dengan cache) ---------- */
    useEffect(() => {
-      if (!lang.load || !lang.label) {
+      if (!lang.load) {
          setLangExtension(null);
          return;
       }
 
       let cancelled = false;
-      loadLanguageExtension(lang.label, lang.load).then((ext) => {
+      loadLanguageExtension(lang.id, lang.load).then((ext) => {
          if (!cancelled) setLangExtension(ext);
       });
 
       return () => {
          cancelled = true;
       };
-   }, [lang.label, lang.load]);
+   }, [lang.id, lang.load]);
 
    const extensions = useMemo(() => {
       const exts = [];
@@ -237,6 +252,104 @@ export function Editor({
       }
    };
 
+   /* ---------- action helpers (mobile bottom bar) ---------- */
+
+   const flashMessage = (msg: string) => {
+      setActionMessage(msg);
+      window.setTimeout(() => {
+         setActionMessage((cur) => (cur === msg ? null : cur));
+      }, 2000);
+   };
+
+   const doSelectAll = () => {
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({
+         selection: { anchor: 0, head: view.state.doc.length },
+      });
+      view.focus();
+   };
+
+   const doCopy = async () => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      if (from === to) {
+         flashMessage('Tidak ada teks yang dipilih.');
+         return;
+      }
+      const text = view.state.sliceDoc(from, to);
+      try {
+         await navigator.clipboard.writeText(text);
+         flashMessage('Tersalin.');
+      } catch {
+         flashMessage('Gagal menyalin.');
+      }
+      view.focus();
+   };
+
+   const doCut = async () => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      if (from === to) {
+         flashMessage('Tidak ada teks yang dipilih.');
+         return;
+      }
+      const text = view.state.sliceDoc(from, to);
+      try {
+         await navigator.clipboard.writeText(text);
+      } catch {
+         flashMessage('Gagal memotong.');
+         return;
+      }
+      view.dispatch({
+         changes: { from, to, insert: '' },
+         selection: { anchor: from },
+      });
+      flashMessage('Dipindahkan.');
+      view.focus();
+   };
+
+   const doPaste = async () => {
+      const view = viewRef.current;
+      if (!view) return;
+      try {
+         const text = await navigator.clipboard.readText();
+         if (!text) {
+            flashMessage('Clipboard kosong.');
+            return;
+         }
+         const { from, to } = view.state.selection.main;
+         view.dispatch({
+            changes: { from, to, insert: text },
+            selection: { anchor: from + text.length },
+         });
+         view.focus();
+      } catch {
+         /* clipboard.readText tidak diizinkan */
+         view.focus();
+         flashMessage('Paste tidak didukung. Tekan lama di editor.');
+      }
+   };
+
+   const insertPair = (open: string, close: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      const selected = view.state.sliceDoc(from, to);
+      const insert = open + selected + close;
+      const cursorPos = from + open.length + selected.length;
+      view.dispatch({
+         changes: { from, to, insert },
+         selection: { anchor: cursorPos },
+      });
+      view.focus();
+   };
+
+   const handleInsertBrackets = () => insertPair('[', ']');
+   const handleInsertQuotes = () => insertPair('"', '"');
+
    const lineCount = file.content.split('\n').length;
    const charCount = file.content.length;
 
@@ -284,14 +397,29 @@ export function Editor({
             )}
          </div>
 
+         {actionMessage && (
+            <div className="editor-action-toast" role="status">
+               {actionMessage}
+            </div>
+         )}
+
          <EditorStatusBar
             line={cursor.line}
             col={cursor.col}
-            language={lang.label}
+            language={lang}
+            autoLanguage={autoLang}
+            languageOverride={override}
+            onChangeLanguage={onLanguageOverrideChange}
             lineCount={lineCount}
             charCount={charCount}
             errors={lintCount.errors}
             warnings={lintCount.warnings}
+            onSelectAll={doSelectAll}
+            onCopy={() => void doCopy()}
+            onCut={() => void doCut()}
+            onPaste={() => void doPaste()}
+            onInsertBrackets={handleInsertBrackets}
+            onInsertQuotes={handleInsertQuotes}
          />
       </>
    );

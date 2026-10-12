@@ -22,7 +22,7 @@ export type FileItem = {
    /** state UI: folder sedang di-expand? */
    expanded?: boolean;
 
-   /* ---------- BARU: sinkronisasi GitHub ---------- */
+   /* ---------- sinkronisasi GitHub ---------- */
    /**
     * Path terakhir yang dikenal GitHub (mis. "src/index.ts").
     * null = belum pernah di-push.
@@ -35,6 +35,13 @@ export type FileItem = {
     * Kalau true & lastSyncedPath === null → cukup hapus dari lokal.
     */
    deleted?: boolean;
+
+   /* ---------- override bahasa editor ---------- */
+   /**
+    * ID bahasa (LangDef.id) untuk override highlighting.
+    * null = pakai deteksi otomatis dari ekstensi.
+    */
+   languageOverride?: string | null;
 };
 
 export type FileTreeNode = {
