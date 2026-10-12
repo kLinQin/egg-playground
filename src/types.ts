@@ -10,6 +10,13 @@ export type FileItem = {
    content: string;
    /** konten terakhir yang di-save — untuk deteksi perubahan & restore */
    savedContent: string;
+   /**
+    * Snapshot konten sebelum user mulai edit (pertama kali sejak save terakhir).
+    * Dipakai untuk fitur Discard: kembalikan ke versi sebelum edit.
+    * - undefined → belum ada edit sejak save terakhir
+    * - string → ada edit, revert ke nilai ini kalau Discard
+    */
+   preEditContent?: string;
    /** true kalau belum pernah di-push ke GitHub */
    isNew: boolean;
    /** state UI: folder sedang di-expand? */
@@ -106,4 +113,26 @@ export type EditorSettings = {
    highlightActiveLine: boolean;
    /** auto-tutup pasangan bracket & quote */
    closeBrackets: boolean;
+};
+
+/* ===================== Sumber file ===================== */
+
+/**
+ * Sumber file aktif editor.
+ *
+ * - 'local'  → data di localStorage (mode sekarang)
+ * - 'disk'   → folder asli via File System Access API
+ * - 'github' → repository yang di-pull
+ *
+ * Ketiganya eksklusif — ganti mode replace seluruh isi editor.
+ */
+export type FileSource = 'local' | 'disk' | 'github';
+
+/**
+ * Metadata file yang di-load dari disk.
+ * Dipakai untuk mapping FileItem (React state) ↔ path asli.
+ */
+export type DiskFileMeta = {
+   /** path relatif dari root folder, mis. "src/App.tsx" */
+   path: string;
 };

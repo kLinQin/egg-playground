@@ -32,6 +32,8 @@ type Props = {
    settings: EditorSettings;
    previewOpen: boolean;
    onChange: (content: string) => void;
+   /** Naikkan nilainya untuk force remount CodeMirror (mis. saat discard) */
+   resetKey: number;
 };
 
 export function Editor({
@@ -41,6 +43,7 @@ export function Editor({
    settings,
    previewOpen,
    onChange,
+   resetKey,
 }: Props) {
    const lang = findLanguage(file.name);
    const viewRef = useRef<EditorView | null>(null);
@@ -49,6 +52,12 @@ export function Editor({
    const [cursor, setCursor] = useState({ line: 1, col: 1 });
    const [lintCount, setLintCount] = useState({ errors: 0, warnings: 0 });
    const [langExtension, setLangExtension] = useState<Extension | null>(null);
+   const [editorKey, setEditorKey] = useState(0);
+
+   /* ---------- force remount saat file.id berubah atau resetKey berubah ---------- */
+   useEffect(() => {
+      setEditorKey((k) => k + 1);
+   }, [file.id, resetKey]);
 
    /* ---------- load bahasa secara lazy (dengan cache) ---------- */
    useEffect(() => {
@@ -239,6 +248,7 @@ export function Editor({
          >
             <div className="editor-split__pane editor-split__pane--editor">
                <CodeMirror
+                  key={editorKey}
                   ref={cmRef}
                   value={file.content}
                   height="100%"

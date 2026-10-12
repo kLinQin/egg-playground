@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FileItem } from '../types';
 
 const FILES_KEY = 'webden-files';
@@ -23,16 +23,9 @@ function migrateFile(raw: LegacyFile): FileItem {
    const kind = raw.kind === 'folder' ? 'folder' : 'file';
    const parentId = typeof raw.parentId === 'string' ? raw.parentId : null;
 
-   /* ---------- lastSyncedPath ---------- */
-   /* kalau tidak ada, cek isNew:
-      - isNew: true  → belum pernah di-push → null
-      - isNew: false → sudah di-push, tapi kita tidak tahu path lamanya.
-        Set null (akan ter-set ulang saat push/pull berikutnya).
-      - kalau sudah ada, pakai */
    const lastSyncedPath =
       typeof raw.lastSyncedPath === 'string' ? raw.lastSyncedPath : null;
 
-   /* ---------- deleted ---------- */
    const deleted = typeof raw.deleted === 'boolean' ? raw.deleted : undefined;
 
    /* ---------- format terbaru (punya savedContent + isNew) ---------- */
@@ -84,14 +77,18 @@ function readFiles(): FileItem[] {
 export function useFileStorage() {
    const [files, setFiles] = useState<FileItem[]>(readFiles);
 
-   /* persist files */
-   useEffect(() => {
+   /**
+    * Simpan daftar file saat ini ke localStorage.
+    * Dipanggil manual dari App (bukan otomatis) — hanya saat user
+    * klik Save, switch mode dengan "Simpan", atau saat keluar.
+    */
+   const flushToStorage = () => {
       try {
          localStorage.setItem(FILES_KEY, JSON.stringify(files));
       } catch {
-         // quota exceeded, ignore
+         /* quota exceeded, ignore */
       }
-   }, [files]);
+   };
 
    const clearAll = () => {
       setFiles([]);
@@ -101,6 +98,7 @@ export function useFileStorage() {
    return {
       files,
       setFiles,
+      flushToStorage,
       clearAll,
    };
 }

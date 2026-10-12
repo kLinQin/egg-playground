@@ -4,6 +4,10 @@ type Props = {
    message: string;
    confirmLabel?: string;
    cancelLabel?: string;
+   /** tombol ketiga (opsional). Kalau diisi, dialog jadi 3 tombol. */
+   thirdLabel?: string;
+   /** callback tombol ketiga. Wajib diisi kalau thirdLabel diisi. */
+   onThird?: () => void;
    danger?: boolean;
    onConfirm: () => void;
    onCancel: () => void;
@@ -15,11 +19,15 @@ export function ConfirmDialog({
    message,
    confirmLabel = 'Ya',
    cancelLabel = 'Batal',
+   thirdLabel,
+   onThird,
    danger = false,
    onConfirm,
    onCancel,
 }: Props) {
    if (!open) return null;
+
+   const hasThird = !!thirdLabel && !!onThird;
 
    return (
       <div className="dialog-backdrop" onClick={onCancel}>
@@ -35,6 +43,11 @@ export function ConfirmDialog({
                <button className="btn" onClick={onCancel}>
                   {cancelLabel}
                </button>
+               {hasThird && (
+                  <button className="btn" onClick={onThird}>
+                     {thirdLabel}
+                  </button>
+               )}
                <button
                   className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`}
                   onClick={onConfirm}

@@ -696,7 +696,6 @@ body {
 /* ===================== Git Panel — Actions Section (Main View) ===================== */
 .git-panel__actions-section {
   padding: 10px;
-  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2128,4 +2127,132 @@ body {
   flex-shrink: 0;
   margin-left: -20px;
   /* ← geser file root ke kiri 8px */
+}
+
+/* ===================== TabBar action buttons ===================== */
+.tab-bar__action {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ===================== Local Panel ===================== */
+.local-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+.local-panel__mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.local-panel__actions-section {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  background: var(--bg-alt);
+}
+
+.local-panel__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.local-panel__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+/* ---------- section title di dalam changes ---------- */
+.changes__section-title {
+  padding: 6px 8px 4px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ===================== Source dropdown ===================== */
+.source-dropdown {
+  position: relative;
+}
+
+.source-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.source-dropdown__trigger:hover {
+  background: var(--hover);
+}
+
+.source-dropdown__menu {
+  min-width: 180px;
+}
+
+.dropdown__item-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Local panel: mode label + clear button ---------- */
+.local-panel__mode-label {
+  flex: 1;
+}
+
+.local-panel__clear {
+  color: var(--text-muted);
+}
+
+.local-panel__clear:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--hover);
+}
+
+/* ---------- Local panel: badge "saved" ---------- */
+.change-item__saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .change-item__saved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
 }

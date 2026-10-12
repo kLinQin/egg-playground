@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, SlidersHorizontal } from 'lucide-react';
+import { X, SlidersHorizontal, Eye, Code2, Save } from 'lucide-react';
 import type { FileItem, EditorSettings } from '../types';
 import { getFileIcon } from '../lib/fileIcons';
 
@@ -14,6 +14,9 @@ type Props = {
       key: K,
       value: EditorSettings[K]
    ) => void;
+   previewOpen: boolean;
+   onTogglePreview: () => void;
+   onSave: () => void;
 };
 
 export function TabBar({
@@ -24,6 +27,9 @@ export function TabBar({
    onClose,
    settings,
    onChangeSettings,
+   previewOpen,
+   onTogglePreview,
+   onSave,
 }: Props) {
    const scrollRef = useRef<HTMLDivElement>(null);
    const settingsRef = useRef<HTMLDivElement>(null);
@@ -61,22 +67,27 @@ export function TabBar({
       .map((id) => files.find((f) => f.id === id))
       .filter((f): f is FileItem => !!f);
 
+   const activeFile = files.find((f) => f.id === activeTabId) ?? null;
+   const isMarkdown = activeFile
+      ? /\.(md|markdown)$/i.test(activeFile.name)
+      : false;
+   const isDirty = activeFile
+      ? activeFile.kind === 'file' &&
+      (activeFile.isNew || activeFile.content !== activeFile.savedContent)
+      : false;
+
    return (
       <div className="tab-bar">
          <div className="tab-bar__scroll" ref={scrollRef}>
             {visibleTabs.map((file) => {
                const isActive = file.id === activeTabId;
-               const isDirty = file.content !== file.savedContent;
+               const isFileDirty = file.content !== file.savedContent;
                const isNew = file.isNew;
                const { Icon, color } = getFileIcon(file.name);
 
-               /* status indicator:
-                  - isNew    → hijau (added)
-                  - isDirty  → kuning (modified), tapi hanya kalau bukan isNew
-               */
                const indicator = isNew
                   ? 'added'
-                  : isDirty
+                  : isFileDirty
                      ? 'modified'
                      : null;
 
@@ -121,6 +132,32 @@ export function TabBar({
                );
             })}
          </div>
+
+         {/* ---------- Save button (muncul kalau ada perubahan) ---------- */}
+         {isDirty && (
+            <div className="tab-bar__action">
+               <button
+                  className="icon-btn"
+                  onClick={onSave}
+                  title="Simpan (Ctrl+S)"
+               >
+                  <Save size={14} />
+               </button>
+            </div>
+         )}
+
+         {/* ---------- Preview button (markdown only) ---------- */}
+         {isMarkdown && (
+            <div className="tab-bar__action">
+               <button
+                  className={`icon-btn ${previewOpen ? 'icon-btn--active' : ''}`}
+                  onClick={onTogglePreview}
+                  title={previewOpen ? 'Tampilkan editor' : 'Tampilkan preview'}
+               >
+                  {previewOpen ? <Code2 size={14} /> : <Eye size={14} />}
+               </button>
+            </div>
+         )}
 
          {/* ---------- Settings button ---------- */}
          <div className="tab-bar__settings" ref={settingsRef}>
