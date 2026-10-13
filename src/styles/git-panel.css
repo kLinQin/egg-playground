@@ -1,0 +1,706 @@
+/* ===================== Git Panel (kolom 3) ===================== */
+.git-panel {
+   height: 100%;
+   border-left: 1px solid var(--border);
+   background: var(--bg-alt);
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.git-panel__header {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 0 10px;
+   height: 34px;
+   border-bottom: 1px solid var(--border);
+   flex-shrink: 0;
+}
+
+.git-panel__title {
+   font-size: 12px;
+   font-weight: bold;
+   text-transform: uppercase;
+   color: var(--text-muted);
+   flex: 1;
+}
+
+.git-panel__scroll {
+   flex: 1;
+   min-height: 0;
+   overflow-y: auto;
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+   padding: 10px;
+}
+
+/* ===================== Git Panel — Actions Section (Main View) ===================== */
+.git-panel__actions-section {
+   padding: 10px;
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+   flex-shrink: 0;
+   background: var(--bg-alt);
+}
+
+.git-panel__actions {
+   display: flex;
+   gap: 6px;
+   margin-top: 4px;
+}
+
+.btn {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   padding: 5px 12px;
+   font-size: 12px;
+   border: 1px solid var(--border);
+   background: var(--bg);
+   color: var(--text);
+   border-radius: 4px;
+   cursor: pointer;
+   font-family: inherit;
+}
+
+.btn:hover:not(:disabled) {
+   background: var(--hover);
+}
+
+.btn:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+}
+
+.btn--primary {
+   background: var(--primary);
+   border-color: var(--primary);
+   color: #fff;
+}
+
+.btn--primary:not(:disabled):hover {
+   background: var(--primary-hover);
+}
+
+.btn--danger {
+   background: var(--danger);
+   border-color: var(--danger);
+   color: #fff;
+}
+
+.btn--danger:not(:disabled):hover {
+   background: var(--danger-hover);
+}
+
+.field {
+   display: flex;
+   flex-direction: column;
+   gap: 3px;
+   font-size: 12px;
+}
+
+.field span {
+   color: var(--text-muted);
+}
+
+.field input {
+   padding: 5px 8px;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   font-size: 13px;
+   font-family: inherit;
+   background: var(--bg);
+   color: var(--text);
+}
+
+.git-panel__hint {
+   display: flex;
+   align-items: center;
+   gap: 4px;
+   font-size: 11px;
+   color: var(--text-muted);
+   margin-top: 4px;
+}
+
+.git-status {
+   padding: 8px 10px;
+   font-size: 12px;
+   border-top: 1px solid var(--border);
+}
+
+.git-status--success {
+   background: #ecfdf5;
+   color: #065f46;
+}
+
+.git-status--error {
+   background: #fef2f2;
+   color: #991b1b;
+}
+
+.git-status--busy {
+   background: #eff6ff;
+   color: #1e40af;
+}
+
+[data-theme='dark'] .git-status--success {
+   background: #064e3b;
+   color: #a7f3d0;
+}
+
+[data-theme='dark'] .git-status--error {
+   background: #7f1d1d;
+   color: #fecaca;
+}
+
+[data-theme='dark'] .git-status--busy {
+   background: #1e3a8a;
+   color: #bfdbfe;
+}
+
+/* ===================== Git verify ===================== */
+.git-verify {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 10px;
+   font-size: 12px;
+   border-radius: 4px;
+}
+
+.git-verify--ok {
+   background: #ecfdf5;
+   color: #065f46;
+}
+
+.git-verify--error {
+   background: #fef2f2;
+   color: #991b1b;
+}
+
+[data-theme='dark'] .git-verify--ok {
+   background: #064e3b;
+   color: #a7f3d0;
+}
+
+[data-theme='dark'] .git-verify--error {
+   background: #7f1d1d;
+   color: #fecaca;
+}
+
+.git-verify__avatar {
+   width: 24px;
+   height: 24px;
+   border-radius: 50%;
+}
+
+.git-verify__text {
+   flex: 1;
+}
+
+.git-verify__logout {
+   color: inherit;
+}
+
+.git-verify__logout:hover {
+   background: rgba(0, 0, 0, 0.1);
+   color: inherit;
+}
+
+[data-theme='dark'] .git-verify__logout:hover {
+   background: rgba(255, 255, 255, 0.1);
+}
+
+.spin {
+   animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+   to {
+      transform: rotate(360deg);
+   }
+}
+
+/* ===================== Device Flow ===================== */
+.device-flow {
+   background: var(--bg-muted);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   padding: 12px;
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+}
+
+.device-flow__instruction {
+   margin: 0;
+   font-size: 12px;
+   color: var(--text);
+   line-height: 1.5;
+}
+
+.device-flow__instruction a {
+   color: var(--primary);
+   word-break: break-all;
+}
+
+.device-flow__code {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   background: var(--bg);
+   border: 1px solid var(--border);
+   border-radius: 4px;
+   padding: 8px 10px;
+}
+
+.device-flow__code code {
+   font-size: 16px;
+   font-weight: bold;
+   letter-spacing: 2px;
+   color: var(--text);
+}
+
+.device-flow__hint {
+   margin: 0;
+   font-size: 11px;
+   color: var(--text-muted);
+   display: flex;
+   align-items: center;
+   gap: 4px;
+}
+
+/* ===================== Token display ===================== */
+.token-display {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   background: var(--bg);
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   padding: 5px 8px;
+}
+
+.token-display code {
+   font-size: 12px;
+   color: var(--text-muted);
+}
+
+/* ===================== Dropdown (Git panel) ===================== */
+.dropdown--full {
+   width: 100%;
+}
+
+.dropdown__trigger {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   width: 100%;
+   padding: 5px 8px;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   background: var(--bg);
+   color: var(--text);
+   font-family: inherit;
+   font-size: 13px;
+   cursor: pointer;
+   text-align: left;
+}
+
+.dropdown__trigger:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+}
+
+.dropdown__placeholder {
+   color: var(--text-muted);
+}
+
+.dropdown__menu--portal {
+   position: fixed;
+   min-width: 0;
+   max-height: 260px;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+   z-index: 999;
+}
+
+.dropdown__search {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   padding: 6px 10px;
+   border-bottom: 1px solid var(--border);
+   color: var(--text-muted);
+   flex-shrink: 0;
+}
+
+.dropdown__search input {
+   flex: 1;
+   background: none;
+   border: none;
+   outline: none;
+   color: var(--text);
+   font-family: inherit;
+   font-size: 13px;
+   padding: 0;
+}
+
+.dropdown__list {
+   overflow-y: auto;
+   max-height: 200px;
+   flex: 1;
+   min-height: 0;
+}
+
+.dropdown__empty {
+   padding: 10px;
+   font-size: 12px;
+   color: var(--text-muted);
+   text-align: center;
+}
+
+/* ===================== Changes Section ===================== */
+.changes {
+   flex: 1;
+   min-height: 120px;
+   border-top: 1px solid var(--border);
+   background: var(--bg-alt);
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.changes__header {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   padding: 8px 10px;
+   border-bottom: 1px solid var(--border);
+   color: var(--text-muted);
+   flex-shrink: 0;
+}
+
+.changes__title {
+   font-size: 11px;
+   font-weight: bold;
+   text-transform: uppercase;
+   flex: 1;
+}
+
+.changes__actions {
+   display: flex;
+   align-items: center;
+   gap: 2px;
+}
+
+.changes__body {
+   flex: 1;
+   min-height: 0;
+   overflow-y: auto;
+   padding: 4px;
+}
+
+.changes__empty {
+   padding: 10px;
+   font-size: 11px;
+   color: var(--text-muted);
+   text-align: center;
+}
+
+.changes__section-title {
+   padding: 6px 8px 4px;
+   font-size: 10px;
+   font-weight: bold;
+   text-transform: uppercase;
+   color: var(--text-muted);
+   letter-spacing: 0.5px;
+}
+
+.change-item {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   padding: 6px 8px;
+   border-radius: 4px;
+}
+
+.change-item:hover {
+   background: var(--hover);
+}
+
+.change-item__status {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 16px;
+   height: 16px;
+   font-size: 10px;
+   font-weight: bold;
+   border-radius: 3px;
+   flex-shrink: 0;
+}
+
+.change-item__status--added {
+   background: rgba(16, 185, 129, 0.15);
+   color: #10b981;
+}
+
+.change-item__status--modified {
+   background: rgba(245, 158, 11, 0.15);
+   color: #f59e0b;
+}
+
+.change-item__status--deleted {
+   background: rgba(239, 68, 68, 0.15);
+   color: #ef4444;
+}
+
+[data-theme='dark'] .change-item__status--added {
+   background: rgba(16, 185, 129, 0.2);
+   color: #34d399;
+}
+
+[data-theme='dark'] .change-item__status--modified {
+   background: rgba(245, 158, 11, 0.2);
+   color: #fbbf24;
+}
+
+[data-theme='dark'] .change-item__status--deleted {
+   background: rgba(239, 68, 68, 0.2);
+   color: #f87171;
+}
+
+.change-item__name {
+   flex: 1;
+   min-width: 0;
+   font-size: 12px;
+   color: var(--text);
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.change-item__action {
+   flex-shrink: 0;
+   padding: 4px;
+   opacity: 0.6;
+}
+
+.change-item:hover .change-item__action {
+   opacity: 1;
+}
+
+.change-item__saved {
+   display: inline-flex;
+   align-items: center;
+   gap: 3px;
+   padding: 2px 6px;
+   font-size: 10px;
+   font-weight: 600;
+   background: rgba(16, 185, 129, 0.15);
+   color: #10b981;
+   border-radius: 3px;
+   flex-shrink: 0;
+}
+
+[data-theme='dark'] .change-item__saved {
+   background: rgba(16, 185, 129, 0.2);
+   color: #34d399;
+}
+
+/* ---------- Changes: inline confirm per-item ---------- */
+.change-item--confirming {
+   background: var(--bg-muted);
+}
+
+.change-item__confirm-text {
+   flex: 1;
+   font-size: 12px;
+   font-weight: 600;
+   color: var(--text);
+}
+
+.change-item__confirm-actions {
+   display: inline-flex;
+   align-items: center;
+   gap: 2px;
+}
+
+.change-item__confirm-ok {
+   color: var(--danger);
+}
+
+.change-item__confirm-ok:hover:not(:disabled) {
+   color: var(--danger-hover);
+   background: var(--hover);
+}
+
+/* ---------- Changes header: inline confirm restore all ---------- */
+.changes__confirm-text {
+   flex: 1;
+   font-size: 11px;
+   font-weight: 600;
+   color: var(--text);
+}
+
+.changes__confirm-actions {
+   display: inline-flex;
+   align-items: center;
+   gap: 2px;
+}
+
+.changes__confirm-ok {
+   color: var(--danger);
+}
+
+.changes__confirm-ok:hover:not(:disabled) {
+   color: var(--danger-hover);
+   background: var(--hover);
+}
+
+/* ===================== Commit History ===================== */
+.commit-history {
+   flex: 1;
+   min-height: 120px;
+   border-top: 1px solid var(--border);
+   background: var(--bg-alt);
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.commit-history__header {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   padding: 8px 10px;
+   border-bottom: 1px solid var(--border);
+   color: var(--text-muted);
+   flex-shrink: 0;
+}
+
+.commit-history__title {
+   font-size: 11px;
+   font-weight: bold;
+   text-transform: uppercase;
+   flex: 1;
+}
+
+.commit-history__body {
+   flex: 1;
+   min-height: 0;
+   overflow-y: auto;
+   padding: 4px;
+}
+
+.commit-history__error {
+   padding: 8px 10px;
+   font-size: 11px;
+   color: var(--danger);
+   background: var(--bg-muted);
+   border-radius: 4px;
+}
+
+.commit-history__empty {
+   padding: 10px;
+   font-size: 11px;
+   color: var(--text-muted);
+   text-align: center;
+}
+
+.commit-history__list {
+   list-style: none;
+   margin: 0;
+   padding: 0;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.commit-item {
+   display: flex;
+   align-items: flex-start;
+   gap: 8px;
+   padding: 6px 8px;
+   border-radius: 4px;
+}
+
+.commit-item:hover {
+   background: var(--hover);
+}
+
+.commit-item__avatar {
+   width: 24px;
+   height: 24px;
+   border-radius: 50%;
+   flex-shrink: 0;
+   margin-top: 2px;
+}
+
+.commit-item__avatar--fallback {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background: var(--primary);
+   color: #fff;
+   font-size: 11px;
+   font-weight: bold;
+}
+
+.commit-item__body {
+   flex: 1;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.commit-item__message {
+   font-size: 12px;
+   color: var(--text);
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.commit-item__meta {
+   display: flex;
+   align-items: center;
+   gap: 4px;
+   font-size: 10px;
+   color: var(--text-muted);
+   flex-wrap: wrap;
+}
+
+.commit-item__meta code {
+   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   font-size: 10px;
+   padding: 0 3px;
+   background: var(--bg-muted);
+   border-radius: 2px;
+}
+
+.commit-item__link {
+   flex-shrink: 0;
+   opacity: 0;
+   padding: 4px;
+}
+
+.commit-item:hover .commit-item__link {
+   opacity: 1;
+}
+
+/* ---------- Git panel: history view full ---------- */
+.commit-history--full {
+   flex: 1;
+   min-height: 0;
+   border-top: none;
+}

@@ -1,0 +1,211 @@
+/* ===================== Editor Split ===================== */
+.editor-split {
+   flex: 1;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.editor-split__pane {
+   flex: 1;
+   min-height: 0;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.editor-split__pane--editor {
+   display: flex;
+}
+
+.editor-split__pane--preview {
+   display: none;
+}
+
+.editor-split--preview .editor-split__pane--editor {
+   display: none;
+}
+
+.editor-split--preview .editor-split__pane--preview {
+   display: flex;
+}
+
+.editor-split__pane--editor>div {
+   flex: 1;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+}
+
+.editor-split__pane--editor .cm-editor {
+   height: 100%;
+   flex: 1;
+   min-height: 0;
+}
+
+.editor-split__pane--editor .cm-scroller {
+   overflow: auto !important;
+}
+
+.editor-split__pane--editor .cm-editor.cm-focused {
+   outline: none;
+}
+
+.editor-split__pane--editor .cm-editor.cm-readonly .cm-content {
+   cursor: default;
+}
+
+/* ===================== CodeMirror search panel ===================== */
+.editor-split__pane .cm-panels {
+   background: var(--bg-muted);
+   color: var(--text);
+   font-family: inherit;
+   font-size: 13px;
+}
+
+.editor-split__pane .cm-panels.cm-panels-top {
+   border-bottom: 1px solid var(--border);
+}
+
+.editor-split__pane .cm-panels.cm-panels-bottom {
+   border-top: 1px solid var(--border);
+}
+
+.editor-split__pane .cm-panel.cm-search {
+   position: relative;
+   padding: 6px 36px 6px 10px;
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 6px;
+}
+
+.editor-split__pane .cm-panel.cm-search br {
+   display: none;
+}
+
+.editor-split__pane .cm-panel.cm-search input,
+.editor-split__pane .cm-panel.cm-search button,
+.editor-split__pane .cm-panel.cm-search label {
+   font-family: inherit;
+   font-size: 12px;
+   color: var(--text);
+}
+
+.editor-split__pane .cm-panel.cm-search input[type='text'] {
+   padding: 4px 8px;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   background: var(--bg);
+   color: var(--text);
+   min-width: 140px;
+   outline: none;
+}
+
+.editor-split__pane .cm-panel.cm-search input[type='text']:focus {
+   border-color: var(--primary);
+}
+
+.editor-split__pane .cm-panel.cm-search input[type='checkbox'] {
+   margin: 0 4px 0 0;
+   cursor: pointer;
+   vertical-align: middle;
+}
+
+.editor-split__pane .cm-panel.cm-search button {
+   padding: 4px 10px;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   background: var(--bg);
+   color: var(--text);
+   cursor: pointer;
+}
+
+.editor-split__pane .cm-panel.cm-search button:hover {
+   background: var(--hover);
+}
+
+.editor-split__pane .cm-panel.cm-search button[name='close'] {
+   position: absolute;
+   top: 6px;
+   right: 6px;
+   padding: 4px 8px;
+   border: none;
+   background: none;
+   font-size: 16px;
+   line-height: 1;
+   color: var(--text-muted);
+}
+
+.editor-split__pane .cm-panel.cm-search button[name='close']:hover {
+   color: var(--text);
+   background: var(--hover);
+}
+
+.editor-split__pane .cm-panel.cm-search label {
+   color: var(--text-muted);
+   font-size: 11px;
+   display: inline-flex;
+   align-items: center;
+   gap: 2px;
+   user-select: none;
+}
+
+.editor-split__pane .cm-searchMatch {
+   background: rgba(255, 200, 0, 0.4);
+   outline: 1px solid rgba(255, 200, 0, 0.6);
+}
+
+.editor-split__pane .cm-searchMatch-selected {
+   background: rgba(255, 140, 0, 0.6);
+   outline: 1px solid rgba(255, 140, 0, 0.8);
+}
+
+[data-theme='dark'] .editor-split__pane .cm-searchMatch {
+   background: rgba(255, 200, 0, 0.25);
+   outline: 1px solid rgba(255, 200, 0, 0.4);
+}
+
+[data-theme='dark'] .editor-split__pane .cm-searchMatch-selected {
+   background: rgba(255, 140, 0, 0.5);
+   outline: 1px solid rgba(255, 140, 0, 0.7);
+}
+
+.cm-tooltip-lint {
+   display: none !important;
+}
+
+/* ===================== Editor action toast ===================== */
+.editor-action-toast {
+   position: absolute;
+   bottom: 40px;
+   left: 50%;
+   transform: translateX(-50%);
+   background: rgba(0, 0, 0, 0.85);
+   color: #fff;
+   font-size: 12px;
+   padding: 6px 14px;
+   border-radius: 16px;
+   z-index: 300;
+   pointer-events: none;
+   animation: toast-fade 0.2s ease-out;
+}
+
+[data-theme='dark'] .editor-action-toast {
+   background: rgba(255, 255, 255, 0.9);
+   color: #000;
+}
+
+@keyframes toast-fade {
+   from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(6px);
+   }
+
+   to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+   }
+}

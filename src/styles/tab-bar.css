@@ -1,0 +1,149 @@
+/* ===================== Tab Bar ===================== */
+.tab-bar {
+   display: flex;
+   align-items: stretch;
+   background: var(--bg-muted);
+   border-bottom: 1px solid var(--border);
+   height: 34px;
+   flex-shrink: 0;
+   overflow: visible;
+}
+
+.tab-item {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   padding: 0 8px 0 10px;
+   height: 100%;
+   border-right: 1px solid var(--border);
+   background: var(--bg-alt);
+   color: var(--text-muted);
+   font-size: 12px;
+   cursor: pointer;
+   white-space: nowrap;
+   flex-shrink: 0;
+   max-width: var(--tab-max-width, 200px);
+   min-width: 100px;
+   user-select: none;
+}
+
+.tab-item:hover {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.tab-item--active {
+   background: var(--bg);
+   color: var(--text);
+   border-bottom: 2px solid var(--primary);
+   padding-bottom: 0;
+}
+
+.tab-item__icon {
+   flex-shrink: 0;
+   opacity: 0.7;
+}
+
+.tab-item--active .tab-item__icon {
+   opacity: 1;
+}
+
+.tab-item__name {
+   flex: 1;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.tab-item__dirty {
+   color: var(--danger);
+   margin-left: 2px;
+   font-weight: bold;
+}
+
+.tab-item__dot {
+   margin-left: 2px;
+   font-weight: bold;
+}
+
+.tab-item__dot--modified {
+   color: #f59e0b;
+}
+
+.tab-item__dot--added {
+   color: #10b981;
+}
+
+[data-theme='dark'] .tab-item__dot--modified {
+   color: #fbbf24;
+}
+
+[data-theme='dark'] .tab-item__dot--added {
+   color: #34d399;
+}
+
+.tab-item__close {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 18px;
+   height: 18px;
+   padding: 0;
+   border: none;
+   background: none;
+   cursor: pointer;
+   color: var(--text-muted);
+   border-radius: 3px;
+   flex-shrink: 0;
+   opacity: 0.6;
+}
+
+.tab-item:hover .tab-item__close,
+.tab-item--active .tab-item__close {
+   opacity: 1;
+}
+
+.tab-item__close:hover {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.tab-bar__scroll {
+   flex: 1;
+   display: flex;
+   align-items: stretch;
+   overflow-x: auto;
+   overflow-y: hidden;
+   min-width: 0;
+   scrollbar-width: thin;
+}
+
+.tab-bar__scroll::-webkit-scrollbar {
+   height: 4px;
+}
+
+.tab-bar__scroll::-webkit-scrollbar-track {
+   background: transparent;
+}
+
+.tab-bar__scroll::-webkit-scrollbar-thumb {
+   background: rgba(128, 128, 128, 0.3);
+   border-radius: 2px;
+}
+
+.tab-bar__settings {
+   display: flex;
+   align-items: center;
+   padding: 0 6px;
+   border-left: 1px solid var(--border);
+   flex-shrink: 0;
+   position: relative;
+}
+
+.tab-bar__action {
+   display: flex;
+   align-items: center;
+   padding: 0 6px;
+   border-left: 1px solid var(--border);
+   flex-shrink: 0;
+}

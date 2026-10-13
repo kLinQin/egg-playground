@@ -1,0 +1,139 @@
+/* ===================== Layout ===================== */
+.app {
+   display: flex;
+   flex-direction: column;
+   height: 100vh;
+   height: 100dvh;
+   background: var(--bg);
+}
+
+.app__body {
+   flex: 1;
+   display: flex;
+   min-height: 0;
+}
+
+/* ===================== Resize Handle ===================== */
+.resize-handle {
+   width: 4px;
+   cursor: col-resize;
+   background: transparent;
+   flex-shrink: 0;
+   position: relative;
+}
+
+.resize-handle::after {
+   content: '';
+   position: absolute;
+   top: 0;
+   bottom: 0;
+   left: 50%;
+   width: 1px;
+   background: var(--border);
+   transform: translateX(-50%);
+}
+
+.resize-handle:hover {
+   background: var(--primary);
+}
+
+.resize-handle:hover::after {
+   background: transparent;
+}
+
+/* ===================== Main ===================== */
+.main {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   min-width: 0;
+   min-height: 0;
+}
+
+.editor-placeholder {
+   flex: 1;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: var(--text-muted);
+}
+
+/* ===================== Mobile Drawer ===================== */
+.app__col {
+   display: flex;
+   flex-direction: column;
+   min-height: 0;
+   min-width: 0;
+}
+
+.app__col--files {
+   border-right: 1px solid var(--border);
+}
+
+.app__col--git {
+   border-left: 1px solid var(--border);
+}
+
+/* Drawer backdrop */
+.drawer-backdrop {
+   position: fixed;
+   inset: 0;
+   background: rgba(0, 0, 0, 0.5);
+   z-index: 200;
+   animation: drawer-backdrop-in 0.15s ease-out;
+}
+
+@keyframes drawer-backdrop-in {
+   from {
+      opacity: 0;
+   }
+
+   to {
+      opacity: 1;
+   }
+}
+
+/* Drawer panel */
+.app__col--drawer {
+   position: fixed;
+   top: 40px;
+   bottom: 0;
+   width: 82vw;
+   max-width: 320px;
+   z-index: 201;
+   animation: drawer-slide-in 0.2s ease-out;
+}
+
+.app__col--drawer-left {
+   left: 0;
+   border-right: 1px solid var(--border);
+}
+
+.app__col--drawer-right {
+   right: 0;
+   border-left: 1px solid var(--border);
+}
+
+@keyframes drawer-slide-in {
+   from {
+      transform: translateX(-100%);
+   }
+
+   to {
+      transform: translateX(0);
+   }
+}
+
+.app__col--drawer-right {
+   animation-name: drawer-slide-in-right;
+}
+
+@keyframes drawer-slide-in-right {
+   from {
+      transform: translateX(100%);
+   }
+
+   to {
+      transform: translateX(0);
+   }
+}

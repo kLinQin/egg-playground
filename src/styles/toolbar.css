@@ -1,0 +1,209 @@
+/* ===================== Toolbar ===================== */
+.toolbar {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 6px 12px;
+   background: var(--bg-muted);
+   border-bottom: 1px solid var(--border);
+   height: 35px;
+   flex-shrink: 0;
+}
+
+.toolbar__left {
+   flex: 1;
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   min-width: 0;
+}
+
+.toolbar__center {
+   flex: 0 0 auto;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+.toolbar__right {
+   flex: 1;
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   gap: 4px;
+}
+
+.toolbar__brand {
+   font-weight: 600;
+   font-size: 13px;
+   color: var(--text);
+}
+
+/* ===================== Source switch (segmented) ===================== */
+.source-switch {
+   display: inline-flex;
+   align-items: stretch;
+   border: 1px solid var(--border);
+   border-radius: 4px;
+   overflow: hidden;
+   background: var(--bg-alt);
+   height: 24px;
+}
+
+.source-switch__btn {
+   display: inline-flex;
+   align-items: center;
+   gap: 5px;
+   padding: 0 10px;
+   font-size: 12px;
+   font-family: inherit;
+   background: transparent;
+   color: var(--text-muted);
+   border: none;
+   cursor: pointer;
+}
+
+.source-switch__btn+.source-switch__btn {
+   border-left: 1px solid var(--border);
+}
+
+.source-switch__btn:hover:not(.source-switch__btn--active) {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.source-switch__btn--active {
+   background: var(--primary);
+   color: #fff;
+}
+
+.source-switch__btn--active:hover {
+   background: var(--primary-hover);
+}
+
+/* ===================== Icon button ===================== */
+.icon-btn {
+   background: none;
+   border: none;
+   cursor: pointer;
+   padding: 5px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   color: var(--text-muted);
+   border-radius: 4px;
+}
+
+.icon-btn:hover:not(:disabled) {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.icon-btn:disabled {
+   opacity: 0.4;
+   cursor: not-allowed;
+}
+
+.icon-btn--active {
+   background: var(--active-bg);
+   color: var(--active-text);
+}
+
+/* ===================== Dropdown ===================== */
+.dropdown {
+   position: relative;
+}
+
+.dropdown__menu {
+   position: absolute;
+   top: calc(100% + 4px);
+   right: 0;
+   min-width: 200px;
+   background: var(--bg);
+   border: 1px solid var(--border);
+   border-radius: 1px;
+   padding: 4px;
+   z-index: 100;
+}
+
+.dropdown--menu-left .dropdown__menu {
+   right: auto;
+   left: 0;
+}
+
+.dropdown__item {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   width: 100%;
+   padding: 7px 10px;
+   background: none;
+   border: none;
+   cursor: pointer;
+   color: var(--text);
+   font-size: 13px;
+   border-radius: 4px;
+   text-align: left;
+}
+
+.dropdown__item:hover {
+   background: var(--hover);
+}
+
+.dropdown__sep {
+   height: 1px;
+   background: var(--border);
+   margin: 4px 0;
+}
+
+/* ===================== Editor settings dropdown ===================== */
+.editor-settings {
+   min-width: 240px;
+}
+
+.editor-settings__row {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   padding: 6px 10px;
+   font-size: 13px;
+   color: var(--text);
+}
+
+.editor-settings__row input[type='number'] {
+   width: 70px;
+   padding: 3px 6px;
+   border: 1px solid var(--border);
+   border-radius: 2px;
+   background: var(--bg);
+   color: var(--text);
+   font-family: inherit;
+}
+
+.editor-settings__row input[type='checkbox'] {
+   cursor: pointer;
+}
+
+/* ===================== Font dropdown row ===================== */
+.dropdown__font-row {
+   display: flex;
+   align-items: center;
+}
+
+.dropdown__font-row .dropdown__item--font {
+   flex: 1;
+   min-width: 0;
+}
+
+.dropdown__font-delete {
+   color: var(--text-muted);
+   padding: 5px 8px;
+   flex-shrink: 0;
+}
+
+.dropdown__font-delete:hover {
+   color: var(--danger);
+   background: var(--hover);
+}

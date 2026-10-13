@@ -1,0 +1,143 @@
+/* ===================== Mobile: Toolbar & Umum ===================== */
+@media (max-width: 768px) {
+   .toolbar {
+      padding: 4px 8px;
+      gap: 4px;
+   }
+
+   .toolbar__left {
+      gap: 4px;
+   }
+
+   .toolbar__brand {
+      display: none;
+   }
+
+   .toolbar__right {
+      gap: 0;
+   }
+
+   .toolbar .btn {
+      padding: 4px 8px;
+      font-size: 11px;
+   }
+
+   .toolbar .btn span {
+      display: none;
+   }
+
+   .source-switch {
+      height: 22px;
+   }
+
+   .source-switch__btn {
+      padding: 0 8px;
+      font-size: 11px;
+      gap: 4px;
+   }
+
+   .status-bar {
+      font-size: 10px;
+      padding: 0 8px;
+      padding-bottom: env(safe-area-inset-bottom);
+      gap: 6px;
+      /* height dari CSS variable — tidak di-override */
+   }
+
+   .status-bar__spacer~.status-bar__item {
+      display: none;
+   }
+
+   /* Ln/Col tetap tampil di mobile (override) */
+   .status-bar__spacer~.status-bar__item--pos {
+      display: inline;
+   }
+
+   .status-bar__spacer~.status-bar__sep {
+      display: none;
+   }
+
+   .resize-handle {
+      display: none;
+   }
+}
+
+/* ===================== Mobile: Tab Bar ===================== */
+@media (max-width: 768px) {
+   .tab-bar {
+      height: 30px;
+   }
+
+   .tab-item {
+      min-width: 80px;
+      padding: 0 6px 0 8px;
+      font-size: 11px;
+      /* max-width dari CSS variable — tidak di-override */
+   }
+
+   .tab-item__close {
+      width: 16px;
+      height: 16px;
+   }
+}
+
+/* ===================== Mobile: Status bar language ===================== */
+@media (max-width: 768px) {
+   .status-bar__lang-btn {
+      font-size: 10px;
+      padding: 0 5px;
+      height: 15px;
+   }
+
+   .status-bar__lang-menu {
+      min-width: 180px;
+      max-height: 260px;
+   }
+
+   .status-bar__lang-item {
+      font-size: 11px;
+      padding: 5px 8px;
+   }
+}
+
+/* ===================== Mobile: Help Modal ===================== */
+@media (max-width: 768px) {
+   .help-modal {
+      width: 95vw;
+      height: 90vh;
+      max-height: none;
+   }
+
+   .help-modal__body {
+      flex-direction: column;
+   }
+
+   .help-modal__sidebar {
+      flex-direction: row;
+      width: 100%;
+      height: auto;
+      padding: 4px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      overflow-y: hidden;
+   }
+
+   .help-modal__nav-item {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+   }
+
+   .help-modal__nav-item.is-active {
+      border-left: none;
+      border-bottom-color: var(--primary);
+   }
+
+   .help-modal__content {
+      padding: 16px;
+      font-size: 12px;
+   }
+}

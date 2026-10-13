@@ -1,0 +1,126 @@
+/* ===================== Dialog ===================== */
+.dialog-backdrop {
+   position: fixed;
+   inset: 0;
+   background: var(--dialog-backdrop);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1000;
+}
+
+.dialog {
+   background: var(--bg);
+   border: 1px solid var(--border);
+   border-radius: 1px;
+   padding: 20px;
+   min-width: 320px;
+   max-width: 90vw;
+}
+
+.dialog__title {
+   margin: 0 0 8px;
+   font-size: 15px;
+   color: var(--text);
+}
+
+.dialog__message {
+   margin: 0 0 16px;
+   font-size: 13px;
+   color: var(--text-muted);
+   line-height: 1.5;
+}
+
+.dialog__actions {
+   display: flex;
+   justify-content: flex-end;
+   gap: 8px;
+}
+
+/* ===================== Toast ===================== */
+.toast {
+   position: fixed;
+   bottom: 20px;
+   left: 50%;
+   transform: translateX(-50%);
+   padding: 10px 16px;
+   border-radius: 1px;
+   font-size: 13px;
+   cursor: pointer;
+   z-index: 1001;
+}
+
+.toast--error {
+   background: var(--danger);
+   color: #fff;
+}
+
+/* ===================== Error Boundary ===================== */
+.error-boundary {
+   position: fixed;
+   inset: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background: var(--bg);
+   color: var(--text);
+   padding: 20px;
+   z-index: 9999;
+   overflow-y: auto;
+}
+
+.error-boundary__card {
+   width: 100%;
+   max-width: 720px;
+   background: var(--bg-alt);
+   border: 1px solid var(--border);
+   border-radius: 1px;
+   padding: 24px;
+}
+
+.error-boundary__title {
+   margin: 0 0 8px;
+   font-size: 20px;
+   color: var(--danger);
+}
+
+.error-boundary__message {
+   margin: 0 0 16px;
+   font-size: 13px;
+   color: var(--text-muted);
+   line-height: 1.5;
+}
+
+.error-boundary__section {
+   margin-bottom: 12px;
+}
+
+.error-boundary__label {
+   font-size: 11px;
+   font-weight: bold;
+   text-transform: uppercase;
+   color: var(--text-muted);
+   margin-bottom: 4px;
+}
+
+.error-boundary__pre {
+   background: var(--bg-muted);
+   border: 1px solid var(--border);
+   border-radius: 4px;
+   padding: 10px;
+   font-size: 12px;
+   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   color: var(--text);
+   overflow: auto;
+   max-height: 200px;
+   white-space: pre-wrap;
+   word-break: break-word;
+   margin: 0;
+}
+
+.error-boundary__actions {
+   display: flex;
+   gap: 8px;
+   margin-top: 16px;
+   flex-wrap: wrap;
+}
