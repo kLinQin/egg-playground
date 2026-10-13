@@ -17,21 +17,21 @@ export type FileItem = {
     * - string → ada edit, revert ke nilai ini kalau Discard
     */
    preEditContent?: string;
-   /** true kalau belum pernah di-push ke GitHub */
+   /** true kalau belum pernah di-push ke backend cloud */
    isNew: boolean;
    /** state UI: folder sedang di-expand? */
    expanded?: boolean;
 
-   /* ---------- sinkronisasi GitHub ---------- */
+   /* ---------- sinkronisasi cloud (GitHub / B2) ---------- */
    /**
-    * Path terakhir yang dikenal GitHub (mis. "src/index.ts").
+    * Path terakhir yang dikenal backend cloud (mis. "src/index.ts").
     * null = belum pernah di-push.
-    * Dipakai untuk deteksi rename/move & hapus file lama di GitHub.
+    * Dipakai untuk deteksi rename/move & hapus file lama di cloud.
     */
    lastSyncedPath: string | null;
    /**
-    * Tombstone: user hapus file ini, tapi belum di-push ke GitHub.
-    * Kalau true & lastSyncedPath !== null → perlu dihapus di GitHub.
+    * Tombstone: user hapus file ini, tapi belum di-push ke cloud.
+    * Kalau true & lastSyncedPath !== null → perlu dihapus di cloud.
     * Kalau true & lastSyncedPath === null → cukup hapus dari lokal.
     */
    deleted?: boolean;
@@ -58,7 +58,7 @@ export type ChangeItem = {
    status: FileStatus;
    staged: boolean;
    /**
-    * Path lama yang perlu dihapus di GitHub (kalau file di-rename/move).
+    * Path lama yang perlu dihapus di cloud (kalau file di-rename/move).
     * Hanya terisi kalau status === 'renamed'.
     */
    deletePath?: string;
@@ -76,6 +76,16 @@ export type GitConfig = {
    owner: string;
    repo: string;
    branch: string;
+};
+
+export type B2Config = {
+   keyId: string;
+   applicationKey: string;
+   bucket: string;
+   /** mis. "s3.us-east-005.backblazeb2.com" */
+   endpoint: string;
+   /** mis. "us-east-005" */
+   region: string;
 };
 
 export type GitStatus =
@@ -131,9 +141,10 @@ export type EditorSettings = {
 /**
  * Sumber file aktif editor.
  *
- * - 'local'  → data di localStorage (mode sekarang)
- * - 'github' → repository yang di-pull
+ * - 'local'  → data di localStorage
+ * - 'github' → repository yang di-pull via GitHub API
+ * - 'b2'     → bucket Backblaze B2 via S3-compatible API
  *
- * Keduanya eksklusif — ganti mode replace seluruh isi editor.
+ * Ketiganya eksklusif — ganti mode replace seluruh isi editor.
  */
-export type FileSource = 'local' | 'github';
+export type FileSource = 'local' | 'github' | 'b2';

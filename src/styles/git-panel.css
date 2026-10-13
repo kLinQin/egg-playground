@@ -704,3 +704,18 @@
    min-height: 0;
    border-top: none;
 }
+
+/* ---------- B2 panel: unlock button di bottom bar ---------- */
+.status-bar__unlock-btn {
+   color: inherit;
+   padding: 2px 4px;
+   flex-shrink: 0;
+}
+
+.status-bar__unlock-btn:hover {
+   background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .status-bar__unlock-btn:hover {
+   background: rgba(255, 255, 255, 0.1);
+}

@@ -6,6 +6,7 @@ import type {
   ChangeItem,
   FileStatus,
   FileSource,
+  B2Config,
 } from './types';
 import { useTheme } from './hooks/useTheme';
 import { useCustomFonts } from './hooks/useCustomFonts';
@@ -21,18 +22,26 @@ import { Editor } from './components/Editor';
 import { TabBar } from './components/TabBar';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { LocalPanel } from './components/LocalPanel';
-import { HelpModal } from './components/HelpModal';
+import { HelpView } from './components/HelpView';
 import { pullRepo, syncFiles } from './lib/github';
 import type { SyncOperation } from './lib/github';
+import { pullCloud, syncFiles as syncCloudFiles } from './lib/cloudStorage';
+import type { SyncOperation as CloudSyncOperation } from './lib/cloudStorage';
 import './App.css';
 
 const GitPanel = lazy(() =>
   import('./components/GitPanel').then((m) => ({ default: m.GitPanel }))
 );
 
+const B2Panel = lazy(() =>
+  import('./components/B2Panel').then((m) => ({ default: m.B2Panel }))
+);
+
 type PendingGitAction =
   | { type: 'pull'; config: GitConfig }
   | { type: 'push'; config: GitConfig; commitMessage: string }
+  | { type: 'b2-pull'; config: B2Config }
+  | { type: 'b2-push'; config: B2Config; commitMessage: string }
   | null;
 
 type PendingSourceChange = FileSource | null;
@@ -856,6 +865,20 @@ function App() {
       } else {
         setFiles([]);
       }
+    } else if (next === 'b2') {
+      const snapshot = sourceSnapshotRef.current.b2;
+      if (snapshot && snapshot.length > 0) {
+        setFiles(snapshot);
+
+        const firstFile = snapshot.find(
+          (f) => f.kind === 'file' && !f.deleted
+        );
+        if (firstFile) {
+          setTimeout(() => openTab(firstFile.id), 0);
+        }
+      } else {
+        setFiles([]);
+      }
     }
   };
 
@@ -1061,18 +1084,181 @@ function App() {
     setPendingGit({ type: 'push', config, commitMessage });
   };
 
+  const doB2Pull = async (config: B2Config) => {
+    setGitStatus({ state: 'busy', message: 'Pull dari B2...' });
+
+    const result = await pullCloud(config);
+
+    if (!result.ok) {
+      setGitStatus({ state: 'error', message: result.message });
+      return;
+    }
+
+    const newFiles: FileItem[] = [];
+    const folderMap = new Map<string, string>();
+
+    for (const item of result.files) {
+      const parts = item.name.split('/').filter(Boolean);
+      const fileName = parts.pop();
+      if (!fileName) continue;
+
+      let parentId: string | null = null;
+      let currentPath = '';
+
+      for (const folderName of parts) {
+        currentPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+        const existing = folderMap.get(currentPath);
+        if (existing) {
+          parentId = existing;
+          continue;
+        }
+
+        const folderId = crypto.randomUUID();
+        newFiles.push({
+          id: folderId,
+          name: folderName,
+          kind: 'folder',
+          parentId,
+          content: '',
+          savedContent: '',
+          isNew: false,
+          expanded: true,
+          lastSyncedPath: currentPath,
+        });
+        folderMap.set(currentPath, folderId);
+        parentId = folderId;
+      }
+
+      newFiles.push({
+        id: crypto.randomUUID(),
+        name: fileName,
+        kind: 'file',
+        parentId,
+        content: item.content,
+        savedContent: item.content,
+        isNew: false,
+        lastSyncedPath: item.name,
+      });
+    }
+
+    setFiles(newFiles);
+    setStagedIds(new Set());
+    setPendingIds(new Set());
+    closeAllTabs();
+    setSource('b2');
+
+    const firstFile = newFiles.find((f) => f.kind === 'file');
+    if (firstFile) {
+      setTimeout(() => openTab(firstFile.id), 0);
+    }
+
+    const skippedMsg =
+      result.skipped > 0 ? ` (${result.skipped} file dilewati)` : '';
+    flashSuccess(
+      `Pull berhasil: ${result.files.length} file${skippedMsg}.`
+    );
+  };
+
+  const handleB2Pull = (config: B2Config) => {
+    setPendingGit({ type: 'b2-pull', config });
+  };
+
+  const doB2Push = async (config: B2Config, commitMessage: string) => {
+    const staged = changes.filter((c) => c.staged);
+
+    if (staged.length === 0) {
+      setGitStatus({
+        state: 'error',
+        message: 'Tidak ada file yang di-stage.',
+      });
+      return;
+    }
+
+    setGitStatus({ state: 'busy', message: 'Push ke B2...' });
+
+    const operations: CloudSyncOperation[] = [];
+    const upsertIds = new Set<string>();
+    const deleteIds = new Set<string>();
+
+    for (const c of staged) {
+      if (c.status === 'deleted') {
+        if (c.deletePath) {
+          operations.push({ type: 'delete', path: c.deletePath });
+        }
+        deleteIds.add(c.file.id);
+        continue;
+      }
+
+      const currentPath = getFullPath(c.file.id, files);
+      operations.push({
+        type: 'upsert',
+        path: currentPath,
+        content: c.file.content,
+      });
+      upsertIds.add(c.file.id);
+
+      if (c.status === 'renamed' && c.deletePath) {
+        operations.push({ type: 'delete', path: c.deletePath });
+      }
+    }
+
+    const result = await syncCloudFiles(config, operations, commitMessage);
+
+    if (!result.ok) {
+      setGitStatus({ state: 'error', message: result.message });
+      return;
+    }
+
+    setFiles((prev) => {
+      const next: FileItem[] = [];
+      for (const f of prev) {
+        if (deleteIds.has(f.id)) continue;
+
+        if (upsertIds.has(f.id)) {
+          next.push({
+            ...f,
+            savedContent: f.content,
+            isNew: false,
+            lastSyncedPath: getFullPath(f.id, files),
+            preEditContent: undefined,
+          });
+          continue;
+        }
+        next.push(f);
+      }
+      return next;
+    });
+
+    setStagedIds(new Set());
+    setPendingIds(new Set());
+
+    const deleteMsg = result.deleted > 0 ? ` · ${result.deleted} dihapus` : '';
+    flashSuccess(
+      `Push berhasil: ${result.upserted} file${deleteMsg} (${result.commitSha.slice(0, 7)}).`
+    );
+  };
+
+  const handleB2Push = (config: B2Config, commitMessage: string) => {
+    setPendingGit({ type: 'b2-push', config, commitMessage });
+  };
+
   const handleConfirmGit = () => {
     if (!pendingGit) return;
     if (pendingGit.type === 'pull') {
       doPull(pendingGit.config);
-    } else {
+    } else if (pendingGit.type === 'push') {
       doPush(pendingGit.config, pendingGit.commitMessage);
+    } else if (pendingGit.type === 'b2-pull') {
+      doB2Pull(pendingGit.config);
+    } else if (pendingGit.type === 'b2-push') {
+      doB2Push(pendingGit.config, pendingGit.commitMessage);
     }
     setPendingGit(null);
   };
 
   const gitDialogContent = (() => {
     if (!pendingGit) return { title: '', message: '' };
+
     if (pendingGit.type === 'pull') {
       return {
         title: 'Pull dari GitHub?',
@@ -1080,6 +1266,15 @@ function App() {
           'Pull akan MENGGANTI semua file lokal dengan file dari repository. File lokal yang tidak ada di repository akan hilang. Lanjutkan?',
       };
     }
+
+    if (pendingGit.type === 'b2-pull') {
+      return {
+        title: 'Pull dari B2?',
+        message:
+          'Pull akan MENGGANTI semua file lokal dengan file dari bucket B2. File lokal yang tidak ada di bucket akan hilang. Lanjutkan?',
+      };
+    }
+
     const staged = changes.filter((c) => c.staged);
     const adds = staged.filter((c) => c.status === 'added').length;
     const mods = staged.filter((c) => c.status === 'modified').length;
@@ -1091,6 +1286,13 @@ function App() {
     if (mods > 0) parts.push(`${mods} diubah`);
     if (renames > 0) parts.push(`${renames} dipindah`);
     if (deletes > 0) parts.push(`${deletes} dihapus`);
+
+    if (pendingGit.type === 'b2-push') {
+      return {
+        title: 'Push ke B2?',
+        message: `Push akan mengirim: ${parts.join(', ')} ke bucket ${pendingGit.config.bucket}. Lanjutkan?`,
+      };
+    }
 
     return {
       title: 'Push ke GitHub?',
@@ -1120,6 +1322,7 @@ function App() {
     const labels: Record<FileSource, string> = {
       local: 'Local',
       github: 'GitHub',
+      b2: 'B2 Cloud',
     };
     return {
       title: `Pindah ke mode ${labels[pendingSource]}?`,
@@ -1152,7 +1355,8 @@ function App() {
         filesOpen={filesOpen}
         source={source}
         onChangeSource={handleChangeSource}
-        onToggleHelp={() => setHelpOpen(true)}
+        helpOpen={helpOpen}
+        onToggleHelp={() => setHelpOpen((v) => !v)}
       />
 
       <div className="app__body">
@@ -1201,32 +1405,38 @@ function App() {
         )}
 
         <main className="main">
-          <TabBar
-            files={files}
-            tabs={tabs}
-            activeTabId={activeTabId}
-            onSelect={setActiveTab}
-            onClose={closeTab}
-            settings={settings}
-            onChangeSettings={updateSettings}
-            previewOpen={previewOpen}
-            onTogglePreview={() => setPreviewOpen((v) => !v)}
-            onSave={() => void handleSave()}
-          />
-
-          {activeFile ? (
-            <Editor
-              file={activeFile}
-              fontFamily={activeFont.family}
-              theme={theme}
-              settings={settings}
-              previewOpen={previewOpen}
-              onChange={handleContentChange}
-              onLanguageOverrideChange={handleLanguageOverrideChange}
-              resetKey={editorResetKey}
-            />
+          {helpOpen ? (
+            <HelpView onClose={() => setHelpOpen(false)} />
           ) : (
-            <div className="editor-placeholder">Pilih atau buat file</div>
+            <>
+              <TabBar
+                files={files}
+                tabs={tabs}
+                activeTabId={activeTabId}
+                onSelect={setActiveTab}
+                onClose={closeTab}
+                settings={settings}
+                onChangeSettings={updateSettings}
+                previewOpen={previewOpen}
+                onTogglePreview={() => setPreviewOpen((v) => !v)}
+                onSave={() => void handleSave()}
+              />
+
+              {activeFile ? (
+                <Editor
+                  file={activeFile}
+                  fontFamily={activeFont.family}
+                  theme={theme}
+                  settings={settings}
+                  previewOpen={previewOpen}
+                  onChange={handleContentChange}
+                  onLanguageOverrideChange={handleLanguageOverrideChange}
+                  resetKey={editorResetKey}
+                />
+              ) : (
+                <div className="editor-placeholder">Pilih atau buat file</div>
+              )}
+            </>
           )}
         </main>
 
@@ -1256,6 +1466,27 @@ function App() {
                     status={gitStatus}
                     onPull={handlePull}
                     onPush={handlePush}
+                    onClearAll={handleClearAll}
+                    changes={changes}
+                    pendingIds={pendingIds}
+                    onStage={handleStage}
+                    onUnstage={handleUnstage}
+                    onRestore={handleDiscard}
+                    onStageAll={handleStageAll}
+                    onUnstageAll={handleUnstageAll}
+                    onRestoreAll={handleDiscardAll}
+                  />
+                </Suspense>
+              ) : source === 'b2' ? (
+                <Suspense
+                  fallback={
+                    <div className="editor-placeholder">Memuat B2 panel…</div>
+                  }
+                >
+                  <B2Panel
+                    status={gitStatus}
+                    onPull={handleB2Pull}
+                    onPush={handleB2Push}
                     onClearAll={handleClearAll}
                     changes={changes}
                     pendingIds={pendingIds}
@@ -1302,8 +1533,14 @@ function App() {
         open={!!pendingGit}
         title={gitDialogContent.title}
         message={gitDialogContent.message}
-        confirmLabel={pendingGit?.type === 'pull' ? 'Pull' : 'Push'}
-        danger={pendingGit?.type === 'pull'}
+        confirmLabel={
+          pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
+            ? 'Pull'
+            : 'Push'
+        }
+        danger={
+          pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
+        }
         onConfirm={handleConfirmGit}
         onCancel={() => setPendingGit(null)}
       />
@@ -1332,11 +1569,6 @@ function App() {
         onCancel={handleCancelSourceChange}
         onThird={() => handleConfirmSourceChange('discard')}
         onConfirm={() => handleConfirmSourceChange('save')}
-      />
-
-      <HelpModal
-        open={helpOpen}
-        onClose={() => setHelpOpen(false)}
       />
 
       {fontError && (

@@ -16,12 +16,6 @@ import {
    GitCommit,
    ExternalLink,
    RefreshCw,
-   Plus,
-   Minus,
-   Undo2,
-   FileEdit,
-   FilePlus,
-   FileMinus,
    Settings,
    GitBranch,
 } from 'lucide-react';
@@ -42,6 +36,7 @@ import type {
    CommitOption,
 } from '../lib/github';
 import { useGitAuth } from '../hooks/useGitAuth';
+import { ChangesList } from './ChangesList';
 
 type Props = {
    status: GitStatus;
@@ -208,20 +203,6 @@ function Dropdown({
    );
 }
 
-/* ===================== Change status helpers ===================== */
-
-function statusLabel(status: ChangeItem['status']): string {
-   if (status === 'added') return 'A';
-   if (status === 'deleted') return 'D';
-   return 'M';
-}
-
-function StatusIcon({ status }: { status: ChangeItem['status'] }) {
-   if (status === 'added') return <FilePlus size={14} />;
-   if (status === 'deleted') return <FileMinus size={14} />;
-   return <FileEdit size={14} />;
-}
-
 /* ===================== GitPanel ===================== */
 
 export function GitPanel({
@@ -280,30 +261,12 @@ export function GitPanel({
    const [configOpen, setConfigOpen] = useState(false);
    const [historyOpen, setHistoryOpen] = useState(false);
 
-   /* ---------- inline confirm state ---------- */
-   const [confirmRestoreAll, setConfirmRestoreAll] = useState(false);
-   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
-
-   /* Escape → cancel inline confirm */
-   useEffect(() => {
-      if (!confirmRestoreAll && !confirmRestoreId) return;
-      const onKey = (e: KeyboardEvent) => {
-         if (e.key === 'Escape') {
-            setConfirmRestoreAll(false);
-            setConfirmRestoreId(null);
-         }
-      };
-      document.addEventListener('keydown', onKey);
-      return () => document.removeEventListener('keydown', onKey);
-   }, [confirmRestoreAll, confirmRestoreId]);
-
    const config: GitConfig = { token, owner, repo, branch };
    const isBusy = status.state === 'busy';
    const canAct = !!token && !!owner && !!repo && !!branch && !isBusy;
    const canVerify = !!token && verifyState.state !== 'busy';
 
    const stagedChanges = changes.filter((c) => c.staged);
-   const unstagedChanges = changes.filter((c) => !c.staged);
    const hasStaged = stagedChanges.length > 0;
 
    const showConfig = !canAct || configOpen;
@@ -537,8 +500,6 @@ export function GitPanel({
       setDeviceState({ state: 'idle' });
       setConfigOpen(false);
       setHistoryOpen(false);
-      setConfirmRestoreAll(false);
-      setConfirmRestoreId(null);
       onClearAll();
    };
 
@@ -900,171 +861,18 @@ export function GitPanel({
                         </div>
                      </div>
 
-                     <div className="changes">
-                        <div className="changes__header">
-                           {confirmRestoreAll ? (
-                              <>
-                                 <span className="changes__confirm-text">
-                                    Buang semua perubahan?
-                                 </span>
-                                 <div className="changes__confirm-actions">
-                                    <button
-                                       className="icon-btn changes__confirm-ok"
-                                       onClick={() => {
-                                          setConfirmRestoreAll(false);
-                                          onRestoreAll();
-                                       }}
-                                       title="Ya, buang semua"
-                                    >
-                                       <Check size={14} />
-                                    </button>
-                                    <button
-                                       className="icon-btn"
-                                       onClick={() => setConfirmRestoreAll(false)}
-                                       title="Batal"
-                                    >
-                                       <X size={14} />
-                                    </button>
-                                 </div>
-                              </>
-                           ) : (
-                              <>
-                                 <span className="changes__title">
-                                    Changes ({changes.length})
-                                 </span>
-                                 <div className="changes__actions">
-                                    {unstagedChanges.length > 0 && (
-                                       <button
-                                          className="icon-btn"
-                                          onClick={onStageAll}
-                                          title="Stage semua"
-                                       >
-                                          <Plus size={14} />
-                                       </button>
-                                    )}
-                                    {stagedChanges.length > 0 && (
-                                       <button
-                                          className="icon-btn"
-                                          onClick={onUnstageAll}
-                                          title="Unstage semua"
-                                       >
-                                          <Minus size={14} />
-                                       </button>
-                                    )}
-                                    {changes.length > 0 && (
-                                       <button
-                                          className="icon-btn"
-                                          onClick={() => setConfirmRestoreAll(true)}
-                                          title="Restore semua"
-                                       >
-                                          <Undo2 size={14} />
-                                       </button>
-                                    )}
-                                 </div>
-                              </>
-                           )}
-                        </div>
-
-                        <div className="changes__body">
-                           {changes.length === 0 && (
-                              <div className="changes__empty">
-                                 Tidak ada perubahan.
-                              </div>
-                           )}
-
-                           {changes.map((c) => {
-                              const isSaved = pendingIds.has(c.file.id);
-                              const isConfirming = confirmRestoreId === c.file.id;
-
-                              /* ---------- inline confirm per-item ---------- */
-                              if (isConfirming) {
-                                 return (
-                                    <div
-                                       key={c.file.id}
-                                       className="change-item change-item--confirming"
-                                    >
-                                       <span className="change-item__confirm-text">
-                                          Buang perubahan?
-                                       </span>
-                                       <div className="change-item__confirm-actions">
-                                          <button
-                                             className="icon-btn change-item__confirm-ok"
-                                             onClick={() => {
-                                                setConfirmRestoreId(null);
-                                                onRestore(c.file.id);
-                                             }}
-                                             title="Ya, buang"
-                                          >
-                                             <Check size={14} />
-                                          </button>
-                                          <button
-                                             className="icon-btn"
-                                             onClick={() => setConfirmRestoreId(null)}
-                                             title="Batal"
-                                          >
-                                             <X size={14} />
-                                          </button>
-                                       </div>
-                                    </div>
-                                 );
-                              }
-
-                              /* ---------- normal mode ---------- */
-                              return (
-                                 <div key={c.file.id} className="change-item">
-                                    <span
-                                       className={`change-item__status change-item__status--${c.status}`}
-                                       title={c.status}
-                                    >
-                                       {statusLabel(c.status)}
-                                    </span>
-
-                                    <StatusIcon status={c.status} />
-
-                                    <span className="change-item__name" title={c.file.name}>
-                                       {c.file.name}
-                                    </span>
-
-                                    {isSaved && (
-                                       <span
-                                          className="change-item__saved"
-                                          title="Sudah disave, tunggu Push"
-                                       >
-                                          <Check size={12} />
-                                          <span>saved</span>
-                                       </span>
-                                    )}
-
-                                    {c.staged ? (
-                                       <button
-                                          className="icon-btn change-item__action"
-                                          onClick={() => onUnstage(c.file.id)}
-                                          title="Unstage"
-                                       >
-                                          <Minus size={14} />
-                                       </button>
-                                    ) : (
-                                       <button
-                                          className="icon-btn change-item__action"
-                                          onClick={() => onStage(c.file.id)}
-                                          title="Stage"
-                                       >
-                                          <Plus size={14} />
-                                       </button>
-                                    )}
-
-                                    <button
-                                       className="icon-btn change-item__action"
-                                       onClick={() => setConfirmRestoreId(c.file.id)}
-                                       title="Restore"
-                                    >
-                                       <Undo2 size={14} />
-                                    </button>
-                                 </div>
-                              );
-                           })}
-                        </div>
-                     </div>
+                     <ChangesList
+                        mode="git"
+                        changes={changes}
+                        pendingIds={pendingIds}
+                        onStage={onStage}
+                        onUnstage={onUnstage}
+                        onStageAll={onStageAll}
+                        onUnstageAll={onUnstageAll}
+                        onRestore={onRestore}
+                        onRestoreAll={onRestoreAll}
+                        savedTitle="Sudah disave, tunggu Push"
+                     />
                   </>
                )}
             </>
