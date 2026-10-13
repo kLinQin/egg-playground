@@ -124,7 +124,7 @@ export function EditorStatusBar({
                </button>
             </div>
 
-            <span className="status-bar__sep" />
+            
 
             <div className="status-bar__action-scroll">
                <button
@@ -250,7 +250,7 @@ export function EditorStatusBar({
             </button>
          </div>
 
-         <span className="status-bar__sep" />
+         
 
          <div className="status-bar__lang" ref={rootRef}>
             <button
@@ -330,7 +330,7 @@ export function EditorStatusBar({
 
          {(hasErrors || hasWarnings) && (
             <>
-               <span className="status-bar__sep" />
+               
                {hasErrors && (
                   <span className="status-bar__item status-bar__item--error">
                      ✕ {errors}
@@ -348,11 +348,11 @@ export function EditorStatusBar({
 
          <span className="status-bar__item">{lineCount} lines</span>
 
-         <span className="status-bar__sep" />
+         
 
          <span className="status-bar__item">{charCount} chars</span>
 
-         <span className="status-bar__sep" />
+         
 
          <span className="status-bar__item status-bar__item--pos">
             Ln {line}, Col {col}

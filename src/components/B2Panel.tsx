@@ -31,6 +31,7 @@ type Props = {
    onStageAll: () => void;
    onUnstageAll: () => void;
    onRestoreAll: () => void;
+   onOpenDiff?: (fileId: string) => void;
 };
 
 /* ---------- env config ---------- */
@@ -62,6 +63,7 @@ export function B2Panel({
    onStageAll,
    onUnstageAll,
    onRestoreAll,
+   onOpenDiff,
 }: Props) {
    const {
       keyId,
@@ -447,6 +449,7 @@ export function B2Panel({
                   onUnstageAll={onUnstageAll}
                   onRestore={onRestore}
                   onRestoreAll={onRestoreAll}
+                  onOpenDiff={onOpenDiff}
                   savedTitle="Sudah disave, tunggu Push"
                />
             </>

@@ -11,11 +11,21 @@ Code playground di browser dengan integrasi **GitHub** dan **Backblaze B2**. Mul
 - Multi-tab — buka beberapa file sekaligus
 - Light & dark mode (GitHub Light + VS Code Dark)
 - Font custom — upload `.ttf` / `.woff` / `.woff2` / `.otf`
-- Line numbers, line wrap, autocomplete, linting, indent guides, close brackets
+- Line numbers, line wrap, autocomplete, linting, indent guides, close brackets, indent with tabs
+- **UI zoom** (50–200%) — scale seluruh tampilan, tersimpan per-device
+- **Reset ke default** — kembalikan semua setting ke nilai awal
 - Markdown preview dengan copy button di code block
 - Bottom bar editor — info kursor, bahasa, jumlah baris/karakter, error/warning
 - Action bar (tombol 🔧) — Undo, Redo, Select All, Copy, Cut, Paste, Insert karakter
 - Keyboard shortcuts (lihat tabel di bawah)
+
+### Diff View
+- Klik file di panel Changes → tampil diff **side-by-side** (sebelum vs sesudah)
+- Read-only, memakai `@codemirror/merge`
+- Highlight baris hijau (tambah) / merah (hapus)
+- Header: nama file + status (Modified/Added/Deleted/Renamed) + counter `+add` / `−del`
+- **Mobile:** switch **Sebelum / Sesudah** untuk lihat satu versi penuh pada satu waktu
+- Otomatis tertutup saat file keluar dari Changes (Save All, Discard, Push)
 
 ### Mode Local
 - File & folder disimpan di `localStorage`
@@ -49,12 +59,15 @@ Code playground di browser dengan integrasi **GitHub** dan **Backblaze B2**. Mul
 ### UI / Layout
 - **Help view** — tutorial lengkap di main area (bukan modal), toggle dari tombol `?` di toolbar kiri
 - Source switch di tengah toolbar — pindah **Local ↔ GitHub ↔ Backblaze B2** dengan brand icons asli
-- Panel kiri (File Manager), tengah (Editor/Help), kanan (Git/Local/B2 Panel)
+- Di layar sempit, label "Backblaze B2" otomatis menyusut jadi "B2" (container query)
+- Panel kiri (File Manager), tengah (Editor / Help / Diff), kanan (Git / Local / B2 Panel)
 - Resizable panel (drag divider)
-- Mobile responsive — drawer untuk File Manager & Git panel
-- Settings editor — font size, line height, tab size, bottom bar height, tab max width, dll
-- Custom bottom bar height (range 20–40 px)
+- **Panel state per-device** — default PC: file manager + git panel dua-duanya terbuka; default mobile: kedua drawer tertutup. Status buka/tutup diingat per device (desktop vs mobile dipisah)
+- Mobile responsive — drawer untuk File Manager & Git panel, auto-close saat pilih file / buka diff / buka help / ganti source
+- Settings editor — font size, line height, tab size, bottom bar height, tab max width, indent with tabs, dll
+- Custom bottom bar height (range 20–60 px)
 - Custom tab max width (range 80–300 px)
+- **Stepper control** dengan **hold-to-repeat** — tap tahan tombol `−` / `+` untuk ubah nilai cepat (0.4s delay, 60ms repeat)
 - Error boundary — tangkap error runtime dan tampilkan pesan
 - Toast notification untuk error font
 - Favicon & OG image untuk preview sosial (Discord, Twitter, dll)
@@ -73,9 +86,10 @@ Code playground di browser dengan integrasi **GitHub** dan **Backblaze B2**. Mul
 
 ## Stack
 
-- **React** + **TypeScript**
+- **React 19** + **TypeScript**
 - **Vite** — build tool
 - **CodeMirror 6** — editor
+- **@codemirror/merge** — diff view
 - **Octokit** — GitHub API
 - **AWS SDK for JavaScript v3** (`@aws-sdk/client-s3`) — Backblaze B2 via S3-compatible API
 - **marked** + **DOMPurify** — Markdown rendering
@@ -221,7 +235,7 @@ src/
   components/
     Toolbar.tsx             Toolbar atas (file toggle, help toggle, source switch, font, theme, git)
     FileManager.tsx         Sidebar kiri (tree file/folder + action menu)
-    TabBar.tsx              Tab file + tombol Save/Preview/Settings
+    TabBar.tsx              Tab file + tombol Save/Preview/Settings (dengan zoom, reset, stepper)
     Editor.tsx              Editor CodeMirror + preview Markdown
     EditorStatusBar.tsx     Bottom bar editor (info + action bar mode)
     MarkdownPreview.tsx     Render Markdown (marked + DOMPurify)
@@ -229,25 +243,31 @@ src/
     LocalPanel.tsx          Panel kanan Local (save all, discard, changes)
     B2Panel.tsx             Panel kanan Backblaze B2 (config, passcode unlock, pull/push)
     ChangesList.tsx         Komponen shared — daftar perubahan (dipakai Git/B2/Local)
+    DiffView.tsx            Diff view side-by-side (@codemirror/merge)
     HelpView.tsx            Panel tutorial di main area (bukan modal)
     HelpModal.tsx           (legacy) Modal tutorial — tidak dipakai
     ConfirmDialog.tsx       Dialog konfirmasi (termasuk 3-button variant)
     ErrorBoundary.tsx       Fallback UI saat error runtime
+    NumberField.tsx         (legacy) Input angka — digantikan StepperControl
+    StepperControl.tsx      Stepper angka dengan hold-to-repeat
+    ZoomControl.tsx         Kontrol zoom UI (dengan hold-to-repeat)
   hooks/
     useTabs.ts              Multi-tab state
     useFileStorage.ts       Persistensi file di localStorage
     useGitAuth.ts           Persistensi token GitHub
     useB2Auth.ts            Persistensi config Backblaze B2
     useTheme.ts             Light/dark mode
-    useEditorSettings.ts    Settings editor (font size, bottom bar height, dll)
+    useEditorSettings.ts    Settings editor + resetAll
     useCustomFonts.ts       Font custom (upload, remove)
     useKeyboardShortcuts.ts Shortcut global
     useMediaQuery.ts        Deteksi viewport mobile
     useResizable.ts         Panel resizable
+    useZoom.ts              UI zoom (persist per localStorage)
+    usePanelState.ts        State buka/tutup panel per-device (desktop/mobile)
   lib/
     github.ts               Octokit wrapper (pull, push, commit history)
     cloudStorage.ts         Backblaze B2 wrapper (pull, push, verify, manifest)
-    helpContent.tsx         Konten tutorial (10 section: welcome, local, github, b2, settings, shortcuts, troubleshooting, faq, tips, about)
+    helpContent.tsx         Konten tutorial (12 section: welcome, local, github, b2, diff, settings, mobile, shortcuts, troubleshooting, faq, tips, about)
     fileIcons.tsx           Mapping ekstensi → icon (react-icons/si)
   assets/                   Asset statis (hero.png, react.svg, vite.svg)
   languages.ts              Definisi bahasa + loader lazy (CodeMirror)
@@ -258,7 +278,7 @@ src/
   styles/
     base.css                Reset, scrollbar, theme variables, focus reset
     layout.css              Layout app, resize handle, main, drawer
-    toolbar.css             Toolbar, source switch, icon button, dropdown
+    toolbar.css             Toolbar, source switch, icon button, dropdown, stepper, zoom
     file-manager.css        File manager + file items + action menu
     tab-bar.css             Tab bar + tab items
     editor.css              Editor split + CodeMirror panels
@@ -268,6 +288,7 @@ src/
     status-bar.css          Status bar + language dropdown + action bar
     dialogs.css             Dialog + toast + error boundary
     help-modal.css          Help modal + help view + hint boxes + tables
+    diff-view.css           Diff view styles
     responsive.css          Semua @media (max-width: 768px)
   index.css                 Style tambahan (Vite default)
   main.tsx                  Entry point
@@ -312,6 +333,8 @@ Mirip Vercel — setup rewrites untuk `/github-login/*`. Lihat dokumentasi platf
 - **GitHub API**: rate limit 5000 request/jam untuk authenticated user
 - **B2**: egress gratis 3× rata-rata storage bulanan; folder kosong tidak di-push
 - **B2 manifest**: file `__manifest.json` jangan dihapus manual dari B2 console
+- **Diff view** bersifat read-only
+- **UI zoom** butuh browser modern (dukungan `zoom` CSS + `dvh`)
 
 ## Lisensi
 

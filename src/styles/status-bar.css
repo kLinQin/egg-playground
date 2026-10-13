@@ -173,15 +173,21 @@
    background: transparent;
    border: 1px solid transparent;
    border-radius: 3px;
-   color: var(--text-muted);
+   color: #059669;
    cursor: pointer;
 }
 
 .status-bar__actions-btn:hover,
 .status-bar__actions-btn.is-active {
    background: var(--hover);
-   color: var(--text);
+   color: #059669;
    border-color: var(--border);
+}
+
+[data-theme='dark'] .status-bar__actions-btn,
+[data-theme='dark'] .status-bar__actions-btn:hover,
+[data-theme='dark'] .status-bar__actions-btn.is-active {
+   color: #10b981;
 }
 
 /* ===================== Status bar: mode aksi (horizontal scroll) ===================== */
@@ -309,8 +315,9 @@
    padding: 2px 8px;
    font-family: inherit;
    font-size: 11px;
+   line-height: 1;
    background: transparent;
-   color: var(--text-muted);
+   color: #059669;
    border: 1px solid transparent;
    border-radius: 3px;
    cursor: pointer;
@@ -320,12 +327,16 @@
 
 .status-bar__history-btn:hover {
    background: var(--hover);
-   color: var(--text);
-   border-color: var(--border);
+   color: #059669;
 }
 
 .status-bar__history-btn.is-active {
    background: var(--active-bg);
-   color: var(--active-text);
-   border-color: var(--border);
+   color: #059669;
+}
+
+[data-theme='dark'] .status-bar__history-btn,
+[data-theme='dark'] .status-bar__history-btn:hover,
+[data-theme='dark'] .status-bar__history-btn.is-active {
+   color: #10b981;
 }

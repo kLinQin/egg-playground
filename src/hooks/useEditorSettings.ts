@@ -3,7 +3,7 @@ import type { EditorSettings } from '../types';
 
 const STORAGE_KEY = 'webden-editor-settings';
 
-const DEFAULTS: EditorSettings = {
+export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
    fontSize: 14,
    lineHeight: 1.5,
    lineNumbers: true,
@@ -17,15 +17,16 @@ const DEFAULTS: EditorSettings = {
    closeBrackets: true,
    bottomBarHeight: 24,
    tabMaxWidth: 200,
+   headerHeight: 34,
 };
 
 function read(): EditorSettings {
    try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULTS;
-      return { ...DEFAULTS, ...JSON.parse(raw) };
+      if (!raw) return DEFAULT_EDITOR_SETTINGS;
+      return { ...DEFAULT_EDITOR_SETTINGS, ...JSON.parse(raw) };
    } catch {
-      return DEFAULTS;
+      return DEFAULT_EDITOR_SETTINGS;
    }
 }
 
@@ -43,5 +44,9 @@ export function useEditorSettings() {
       setSettings((prev) => ({ ...prev, [key]: value }));
    };
 
-   return { settings, update };
+   const resetAll = () => {
+      setSettings(DEFAULT_EDITOR_SETTINGS);
+   };
+
+   return { settings, update, resetAll };
 }

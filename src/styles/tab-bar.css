@@ -4,7 +4,7 @@
    align-items: stretch;
    background: var(--bg-muted);
    border-bottom: 1px solid var(--border);
-   height: 34px;
+   height: var(--header-height, 34px);
    flex-shrink: 0;
    overflow: visible;
 }

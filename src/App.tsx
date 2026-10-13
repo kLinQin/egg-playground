@@ -16,6 +16,8 @@ import { useFileStorage } from './hooks/useFileStorage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useTabs } from './hooks/useTabs';
+import { useZoom } from './hooks/useZoom';
+import { usePanelState } from './hooks/usePanelState';
 import { Toolbar } from './components/Toolbar';
 import { FileManager } from './components/FileManager';
 import { Editor } from './components/Editor';
@@ -23,6 +25,7 @@ import { TabBar } from './components/TabBar';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { LocalPanel } from './components/LocalPanel';
 import { HelpView } from './components/HelpView';
+import { DiffView } from './components/DiffView';
 import { pullRepo, syncFiles } from './lib/github';
 import type { SyncOperation } from './lib/github';
 import { pullCloud, syncFiles as syncCloudFiles } from './lib/cloudStorage';
@@ -75,7 +78,12 @@ function hasUnsavedChanges(files: FileItem[]): boolean {
 
 function App() {
   const { theme, setTheme } = useTheme();
-  const { settings, update: updateSettings } = useEditorSettings();
+  const {
+    settings,
+    update: updateSettings,
+    resetAll: resetSettings,
+  } = useEditorSettings();
+  const zoom = useZoom();
   const {
     fonts,
     activeFont,
@@ -104,6 +112,13 @@ function App() {
   } = useTabs(files);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  const {
+    filesOpen,
+    setFilesOpen,
+    gitOpen,
+    setGitOpen,
+  } = usePanelState(isMobile);
 
   const [source, setSource] = useState<FileSource>('local');
   const [pendingSource, setPendingSource] = useState<PendingSourceChange>(null);
@@ -140,9 +155,8 @@ function App() {
     storageKey: 'webden-git-col-width',
   });
 
-  const [filesOpen, setFilesOpen] = useState(true);
-  const [gitOpen, setGitOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [diffFileId, setDiffFileId] = useState<string | null>(null);
   const [gitStatus, setGitStatus] = useState<GitStatus>({ state: 'idle' });
   const [pendingDelete, setPendingDelete] = useState<FileItem | null>(null);
   const [pendingGit, setPendingGit] = useState<PendingGitAction>(null);
@@ -234,6 +248,14 @@ function App() {
     [changes]
   );
 
+  const diffChange = useMemo(
+    () =>
+      diffFileId
+        ? changes.find((c) => c.file.id === diffFileId) ?? null
+        : null,
+    [diffFileId, changes]
+  );
+
   useEffect(() => {
     setPreviewOpen(false);
   }, [activeTabId]);
@@ -257,6 +279,13 @@ function App() {
     });
   }, [files]);
 
+  /* auto-tutup diff kalau file-nya sudah tidak ada di changes */
+  useEffect(() => {
+    if (diffFileId && !diffChange) {
+      setDiffFileId(null);
+    }
+  }, [diffFileId, diffChange]);
+
   useEffect(() => {
     if (tabs.length === 0 && files.length > 0) {
       const firstFile = files.find((f) => f.kind === 'file' && !f.deleted);
@@ -264,6 +293,14 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ---------- helper: tutup drawer mobile ---------- */
+  const closeMobileDrawers = () => {
+    if (isMobile) {
+      setFilesOpen(false);
+      setGitOpen(false);
+    }
+  };
 
   const handleToggleFiles = () => {
     setFilesOpen((v) => {
@@ -281,7 +318,25 @@ function App() {
     });
   };
 
+  const handleToggleHelp = () => {
+    setHelpOpen((v) => {
+      const next = !v;
+      if (next) {
+        setDiffFileId(null);
+        closeMobileDrawers();
+      }
+      return next;
+    });
+  };
+
+  /* ---------- helper: buka diff (tutup drawer di mobile) ---------- */
+  const openDiff = (fileId: string) => {
+    setDiffFileId(fileId);
+    closeMobileDrawers();
+  };
+
   const handleSelectFile = (id: string) => {
+    setDiffFileId(null);
     openTab(id);
     if (isMobile) setFilesOpen(false);
   };
@@ -831,6 +886,8 @@ function App() {
     setStagedIds(new Set());
     setGitStatus({ state: 'idle' });
     setPreviewOpen(false);
+    setDiffFileId(null);
+    closeMobileDrawers();
 
     setSource(next);
 
@@ -1338,6 +1395,7 @@ function App() {
         {
           '--status-bar-height': `${settings.bottomBarHeight}px`,
           '--tab-max-width': `${settings.tabMaxWidth}px`,
+          '--header-height': `${settings.headerHeight}px`,
         } as React.CSSProperties
       }
     >
@@ -1356,7 +1414,7 @@ function App() {
         source={source}
         onChangeSource={handleChangeSource}
         helpOpen={helpOpen}
-        onToggleHelp={() => setHelpOpen((v) => !v)}
+        onToggleHelp={handleToggleHelp}
       />
 
       <div className="app__body">
@@ -1407,6 +1465,15 @@ function App() {
         <main className="main">
           {helpOpen ? (
             <HelpView onClose={() => setHelpOpen(false)} />
+          ) : diffChange ? (
+            <DiffView
+              change={diffChange}
+              theme={theme}
+              fontFamily={activeFont.family}
+              settings={settings}
+              isMobile={isMobile}
+              onClose={() => setDiffFileId(null)}
+            />
           ) : (
             <>
               <TabBar
@@ -1417,9 +1484,16 @@ function App() {
                 onClose={closeTab}
                 settings={settings}
                 onChangeSettings={updateSettings}
+                onResetSettings={resetSettings}
                 previewOpen={previewOpen}
                 onTogglePreview={() => setPreviewOpen((v) => !v)}
                 onSave={() => void handleSave()}
+                zoom={zoom.zoom}
+                onZoomIn={zoom.zoomIn}
+                onZoomOut={zoom.zoomOut}
+                onZoomReset={zoom.reset}
+                zoomMin={zoom.min}
+                zoomMax={zoom.max}
               />
 
               {activeFile ? (
@@ -1475,6 +1549,7 @@ function App() {
                     onStageAll={handleStageAll}
                     onUnstageAll={handleUnstageAll}
                     onRestoreAll={handleDiscardAll}
+                    onOpenDiff={openDiff}
                   />
                 </Suspense>
               ) : source === 'b2' ? (
@@ -1496,6 +1571,7 @@ function App() {
                     onStageAll={handleStageAll}
                     onUnstageAll={handleUnstageAll}
                     onRestoreAll={handleDiscardAll}
+                    onOpenDiff={openDiff}
                   />
                 </Suspense>
               ) : (
@@ -1507,6 +1583,7 @@ function App() {
                   onDiscardAll={handleDiscardAll}
                   onSaveAll={() => void handleSaveAll()}
                   saving={saving}
+                  onOpenDiff={openDiff}
                 />
               )}
             </div>

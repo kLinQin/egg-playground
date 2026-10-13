@@ -13,7 +13,7 @@
    align-items: center;
    gap: 8px;
    padding: 0 10px;
-   height: 34px;
+   height: var(--header-height, 34px);
    border-bottom: 1px solid var(--border);
    flex-shrink: 0;
 }
@@ -476,6 +476,31 @@
 [data-theme='dark'] .change-item__status--deleted {
    background: rgba(239, 68, 68, 0.2);
    color: #f87171;
+}
+
+/* ---------- Changes: open button (klik buka diff) ---------- */
+.change-item__open {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   flex: 1;
+   min-width: 0;
+   background: none;
+   border: none;
+   padding: 0;
+   margin: 0;
+   color: inherit;
+   font: inherit;
+   text-align: left;
+   cursor: pointer;
+}
+
+.change-item__open:disabled {
+   cursor: default;
+}
+
+.change-item__open:not(:disabled):hover .change-item__name {
+   text-decoration: underline;
 }
 
 .change-item__name {

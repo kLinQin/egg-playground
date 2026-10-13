@@ -6,7 +6,7 @@
    padding: 6px 12px;
    background: var(--bg-muted);
    border-bottom: 1px solid var(--border);
-   height: 35px;
+   height: var(--header-height, 35px);
    flex-shrink: 0;
 }
 
@@ -117,7 +117,7 @@
 .dropdown__menu {
    position: absolute;
    top: calc(100% + 4px);
-   right: 0;
+   right: 5px;
    min-width: 200px;
    background: var(--bg);
    border: 1px solid var(--border);
@@ -129,6 +129,7 @@
 .dropdown--menu-left .dropdown__menu {
    right: auto;
    left: 0;
+   
 }
 
 .dropdown__item {
@@ -172,16 +173,6 @@
    color: var(--text);
 }
 
-.editor-settings__row input[type='number'] {
-   width: 70px;
-   padding: 3px 6px;
-   border: 1px solid var(--border);
-   border-radius: 2px;
-   background: var(--bg);
-   color: var(--text);
-   font-family: inherit;
-}
-
 .editor-settings__row input[type='checkbox'] {
    cursor: pointer;
 }
@@ -206,4 +197,173 @@
 .dropdown__font-delete:hover {
    color: var(--danger);
    background: var(--hover);
+}
+
+/* ===================== Zoom control ===================== */
+.zoom-control {
+   display: inline-flex;
+   align-items: stretch;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   overflow: hidden;
+   height: 22px;
+   background: var(--bg);
+}
+
+.zoom-control__btn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 22px;
+   padding: 0;
+   border: none;
+   background: none;
+   color: var(--text-muted);
+   cursor: pointer;
+}
+
+.zoom-control__btn:hover:not(:disabled) {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.zoom-control__btn:disabled {
+   opacity: 0.35;
+   cursor: not-allowed;
+}
+
+.zoom-control__value {
+   width: 52px;
+   padding: 0;
+   border: none;
+   border-left: 1px solid var(--border);
+   border-right: 1px solid var(--border);
+   background: none;
+   color: var(--text);
+   font-family: inherit;
+   font-size: 12px;
+   cursor: pointer;
+   text-align: center;
+   font-variant-numeric: tabular-nums;
+}
+
+.zoom-control__value:hover {
+   background: var(--hover);
+}
+
+/* ===================== Stepper control ===================== */
+.stepper-control {
+   display: inline-flex;
+   align-items: stretch;
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   overflow: hidden;
+   height: 22px;
+   background: var(--bg);
+}
+
+.stepper-control__btn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 22px;
+   padding: 0;
+   border: none;
+   background: none;
+   color: var(--text-muted);
+   cursor: pointer;
+}
+
+.stepper-control__btn:hover:not(:disabled) {
+   background: var(--hover);
+   color: var(--text);
+}
+
+.stepper-control__btn:disabled {
+   opacity: 0.35;
+   cursor: not-allowed;
+}
+
+.stepper-control__value {
+   width: 52px;
+   padding: 0;
+   border-left: 1px solid var(--border);
+   border-right: 1px solid var(--border);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   color: var(--text);
+   font-family: inherit;
+   font-size: 12px;
+   user-select: none;
+   font-variant-numeric: tabular-nums;
+}
+
+/* ===================== Reset button (editor settings) ===================== */
+.editor-settings__reset {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   width: 100%;
+   padding: 7px 10px;
+   background: none;
+   border: none;
+   cursor: pointer;
+   color: var(--text);
+   font-size: 13px;
+   font-family: inherit;
+   border-radius: 4px;
+   text-align: left;
+}
+
+.editor-settings__reset:hover {
+   background: var(--hover);
+}
+
+.editor-settings__reset.is-confirming {
+   background: var(--hover);
+   color: var(--danger);
+}
+
+.editor-settings__reset.is-confirming:hover {
+   background: var(--hover);
+   color: var(--danger-hover);
+}
+
+/* ===================== Toolbar: container query ===================== */
+.toolbar {
+   container-type: inline-size;
+   container-name: toolbar;
+}
+
+/* sembunyikan teks panjang "Backblaze B2" → tampilkan versi pendek */
+.source-switch__btn-short {
+   display: none;
+}
+
+@container toolbar (max-width: 420px) {
+   .source-switch__btn-long {
+      display: none;
+   }
+
+   .source-switch__btn-short {
+      display: inline;
+   }
+}
+
+/* ===================== Touch-friendly tombol stepper & zoom ===================== */
+.stepper-control,
+.zoom-control {
+   user-select: none;
+   -webkit-user-select: none;
+}
+
+.stepper-control__btn,
+.stepper-control__value,
+.zoom-control__btn,
+.zoom-control__value {
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   touch-action: manipulation;
 }

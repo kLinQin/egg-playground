@@ -2,8 +2,9 @@
 .app {
    display: flex;
    flex-direction: column;
-   height: 100vh;
-   height: 100dvh;
+   /* kompensasi zoom: setelah di-scale, tinggi efektif = viewport */
+   height: calc(100vh / var(--ui-zoom, 1));
+   height: calc(100dvh / var(--ui-zoom, 1));
    background: var(--bg);
 }
 
@@ -15,11 +16,14 @@
 
 /* ===================== Resize Handle ===================== */
 .resize-handle {
-   width: 4px;
+   width: 3px;
    cursor: col-resize;
    background: transparent;
    flex-shrink: 0;
    position: relative;
+   margin: 0 -2px;
+   /* geser keluar 2px di tiap sisi, area klik lebih lebar tanpa makan ruang kolom */
+   z-index: 5;
 }
 
 .resize-handle::after {
@@ -29,16 +33,14 @@
    bottom: 0;
    left: 50%;
    width: 1px;
-   background: var(--border);
-   transform: translateX(-50%);
-}
-
-.resize-handle:hover {
-   background: var(--primary);
-}
-
-.resize-handle:hover::after {
    background: transparent;
+   transform: translateX(-50%);
+   transition: background 0.12s ease;
+}
+
+.resize-handle:hover::after,
+.resize-handle:active::after {
+   background: var(--primary);
 }
 
 /* ===================== Main ===================== */

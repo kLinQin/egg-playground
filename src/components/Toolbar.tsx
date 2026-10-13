@@ -165,7 +165,8 @@ export function Toolbar({
                   title="Backblaze B2 bucket"
                >
                   <BackblazeBrandIcon size={13} />
-                  <span>Backblaze B2</span>
+                  <span className="source-switch__btn-long">Backblaze B2</span>
+                  <span className="source-switch__btn-short">B2</span>
                </button>
             </div>
          </div>

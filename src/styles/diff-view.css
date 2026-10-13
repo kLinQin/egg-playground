@@ -1,0 +1,168 @@
+.diff-view {
+   display: flex;
+   flex-direction: column;
+   flex: 1;
+   min-height: 0;
+   background: var(--bg);
+   overflow: hidden;
+}
+
+/* ---------- header: samakan dengan tab-bar / file-manager__header / panel header ---------- */
+.diff-view__header {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   padding: 0 10px;
+   height: var(--header-height, 34px);
+   box-sizing: border-box;
+   background: var(--bg-muted);
+   border-bottom: 1px solid var(--border);
+   flex-shrink: 0;
+}
+
+.diff-view__title {
+   flex: 1;
+   min-width: 0;
+   font-size: 12px;
+   font-weight: 600;
+   color: var(--text);
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.diff-view__status {
+   font-size: 10px;
+   font-weight: 700;
+   padding: 1px 5px;
+   border-radius: 3px;
+   text-transform: uppercase;
+   flex-shrink: 0;
+}
+
+.diff-view__status--modified {
+   background: #d29922;
+   color: #000;
+}
+
+.diff-view__status--added {
+   background: #2ea043;
+   color: #fff;
+}
+
+.diff-view__status--deleted {
+   background: #da3633;
+   color: #fff;
+}
+
+.diff-view__status--renamed {
+   background: #1f6feb;
+   color: #fff;
+}
+
+/* ---------- switch Sebelum/Sesudah (khusus mobile) ---------- */
+.diff-view__side-switch {
+   height: 22px;
+   flex-shrink: 0;
+}
+
+.diff-view__side-switch .source-switch__btn {
+   padding: 0 8px;
+   font-size: 11px;
+}
+
+/* ---------- body untuk MergeView ---------- */
+.diff-view__body {
+   flex: 1;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.diff-view__body .cm-mergeView {
+   flex: 1;
+   min-height: 0;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.diff-view__body .cm-mergeViewEditors {
+   flex: 1;
+   min-height: 0;
+   display: flex;
+   overflow: hidden;
+}
+
+.diff-view__body .cm-mergeViewEditor {
+   flex: 1;
+   min-height: 0;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.diff-view__body .cm-editor {
+   flex: 1;
+   min-height: 0;
+   height: 100%;
+}
+
+.diff-view__body .cm-scroller {
+   overflow: auto !important;
+}
+
+/* ---------- mobile: sembunyikan satu sisi ---------- */
+.diff-view--mobile-a .cm-mergeViewEditor:last-child {
+   display: none;
+}
+
+.diff-view--mobile-b .cm-mergeViewEditor:first-child {
+   display: none;
+}
+
+/* ---------- highlight perubahan ---------- */
+.diff-view__body .cm-changedLine {
+   background: rgba(46, 160, 67, 0.12);
+}
+
+.diff-view__body .cm-changedLineGutter {
+   background: rgba(46, 160, 67, 0.20);
+}
+
+.diff-view__body .cm-deletedChunk {
+   background: rgba(218, 54, 51, 0.10);
+}
+
+.diff-view__body .cm-deletedLine {
+   background: rgba(218, 54, 51, 0.12);
+}
+
+.diff-view__body .cm-changedText {
+   background: rgba(46, 160, 67, 0.30);
+}
+
+.diff-view__body .cm-deletedText {
+   background: rgba(218, 54, 51, 0.30);
+}
+
+[data-theme='dark'] .diff-view__body .cm-changedLine {
+   background: rgba(46, 160, 67, 0.20);
+}
+
+[data-theme='dark'] .diff-view__body .cm-deletedLine {
+   background: rgba(218, 54, 51, 0.20);
+}
+
+/* ---------- status bar angka add/del ---------- */
+.diff-view .diff-view__stat-add {
+   color: #2ea043;
+   font-weight: 600;
+}
+
+.diff-view .diff-view__stat-del {
+   color: #da3633;
+   font-weight: 600;
+}

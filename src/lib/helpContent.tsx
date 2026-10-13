@@ -19,6 +19,9 @@ import {
    Sparkles,
    Bug,
    BookOpen,
+   Smartphone,
+   RotateCcw,
+   ZoomIn,
 } from 'lucide-react';
 
 export type HelpSection = {
@@ -116,6 +119,14 @@ export const HELP_SECTIONS: HelpSection[] = [
                <li>
                   <strong>Markdown preview</strong> — preview real-time untuk
                   file <code>.md</code>.
+               </li>
+               <li>
+                  <strong>Diff view</strong> — lihat perbedaan versi file
+                  sebelum & sesudah edit, seperti di GitHub.
+               </li>
+               <li>
+                  <strong>UI zoom</strong> — perbesar/perkecil seluruh tampilan
+                  sesuai kenyamanan.
                </li>
                <li>
                   <strong>Custom font</strong> — upload font sendiri (.woff2,
@@ -766,7 +777,101 @@ VITE_B2_REGION=us-xxx-xxx`}
          </>
       ),
    },
-   /* ===================== 5. Pengaturan Editor ===================== */
+
+   /* ===================== 5. Diff View ===================== */
+   {
+      id: 'diff',
+      title: 'Diff View',
+      content: (
+         <>
+            <h2>Lihat perbedaan versi file</h2>
+            <p>
+               <strong>Diff View</strong> menampilkan perbedaan antara versi
+               sebelum edit dan versi sesudah edit — mirip tampilan diff di
+               GitHub.
+            </p>
+
+            <h3>Kapan muncul?</h3>
+            <p>
+               Setiap file yang berubah akan muncul di panel{' '}
+               <strong>Changes</strong> (panel kanan). File yang di-edit
+               otomatis masuk ke daftar tersebut.
+            </p>
+
+            <h3>Cara membuka diff</h3>
+            <ol>
+               <li>
+                  Buka panel <strong>Changes</strong> (ikon git di toolbar
+                  kanan, atau otomatis terbuka saat ada perubahan).
+               </li>
+               <li>
+                  <strong>Klik nama file</strong> di daftar Changes.
+               </li>
+               <li>
+                  Editor akan berganti menampilkan <strong>Diff View</strong>.
+               </li>
+               <li>
+                  Klik ikon <strong>✕</strong> di header diff untuk kembali ke
+                  editor.
+               </li>
+            </ol>
+
+            <h3>Yang ditampilkan</h3>
+            <ul>
+               <li>
+                  <strong>Sisi kiri</strong> — versi sebelum edit terakhir
+                  (<code>preEditContent</code> atau <code>savedContent</code>).
+               </li>
+               <li>
+                  <strong>Sisi kanan</strong> — versi saat ini (<code>content</code>).
+               </li>
+               <li>
+                  <strong>Baris hijau</strong> — teks yang ditambahkan.
+               </li>
+               <li>
+                  <strong>Baris merah</strong> — teks yang dihapus.
+               </li>
+               <li>
+                  <strong>Header</strong> — nama file + status (Modified /
+                  Added / Deleted / Renamed) + jumlah <code>+add</code> /{' '}
+                  <code>−del</code>.
+               </li>
+            </ul>
+
+            <Hint variant="info">
+               Diff bersifat <strong>read-only</strong> — kamu tidak bisa edit
+               langsung di diff. Untuk edit, tutup diff dulu (klik ✕), lalu
+               ubah di editor normal.
+            </Hint>
+
+            <h3>Diff di mobile</h3>
+            <p>
+               Di layar sempit, diff menampilkan <strong>satu versi pada satu
+                  waktu</strong>. Di header ada switch:
+            </p>
+            <ul>
+               <li>
+                  <strong>Sebelum</strong> — tampilkan versi lama.
+               </li>
+               <li>
+                  <strong>Sesudah</strong> — tampilkan versi baru (default).
+               </li>
+            </ul>
+            <p>
+               Klik tombol switch untuk berpindah antar versi. Mode ini dipakai
+               supaya kode tetap terbaca nyaman di HP.
+            </p>
+
+            <Hint variant="warning">
+               Diff akan otomatis tertutup kalau file dihapus dari Changes
+               (mis. setelah <strong>Save All</strong>, <strong>Discard</strong>,
+               atau <strong>Push</strong>).
+            </Hint>
+         </>
+      ),
+   },
+
+   /* ===================== 6. Pengaturan Editor ===================== */
    {
       id: 'settings',
       title: 'Pengaturan Editor',
@@ -781,13 +886,53 @@ VITE_B2_REGION=us-xxx-xxx`}
                (sliders) di kanan baris tab untuk buka panel pengaturan editor.
             </p>
 
+            <h3>
+               <ZoomIn size={14} /> UI zoom
+            </h3>
+            <p>
+               Tombol <strong>−</strong> / <strong>100%</strong> /{' '}
+               <strong>+</strong> di baris paling atas panel settings untuk
+               perbesar/perkecil seluruh UI (font, tombol, panel) sekaligus.
+            </p>
+            <ul>
+               <li>
+                  Range: <strong>50% – 200%</strong>, step 10%.
+               </li>
+               <li>
+                  Klik angka persen untuk <strong>reset ke 100%</strong>.
+               </li>
+               <li>
+                  Klik tahan tombol <strong>−</strong> atau <strong>+</strong>{' '}
+                  untuk naik/turun cepat (auto-repeat).
+               </li>
+               <li>
+                  Nilai tersimpan otomatis — tetap sama setelah refresh.
+               </li>
+            </ul>
+
+            <h3>
+               <RotateCcw size={14} /> Reset ke default
+            </h3>
+            <p>
+               Tombol <strong>Reset ke default</strong> di atas panel settings
+               untuk kembalikan semua pengaturan editor (font size, line
+               height, zoom, checkbox, dll) ke nilai awal.
+            </p>
+            <Hint variant="info">
+               Klik sekali → tombol berubah jadi <em>"Klik lagi untuk
+                  konfirmasi"</em>. Klik kedua kali → reset dijalankan. Klik di
+               luar atau tekan <kbd>Esc</kbd> untuk batal.
+            </Hint>
+
             <h3>Ukuran & tampilan teks</h3>
             <ul>
                <li>
-                  <strong>Font size</strong> — ukuran font editor (default 14).
+                  <strong>Font size</strong> — ukuran font editor
+                  (default 14, range 10–32).
                </li>
                <li>
-                  <strong>Line height</strong> — jarak antar baris (default 1.5).
+                  <strong>Line height</strong> — jarak antar baris
+                  (default 1.5, range 1–3).
                </li>
                <li>
                   <strong>Line numbers</strong> — tampilkan nomor baris di kiri.
@@ -816,19 +961,33 @@ VITE_B2_REGION=us-xxx-xxx`}
                   <strong>Close brackets</strong> — auto-tutup pasangan bracket
                   & quote.
                </li>
+               <li>
+                  <strong>Indent with tabs</strong> — pakai karakter tab
+                  (bukan spasi) untuk indentasi.
+               </li>
             </ul>
 
             <h3>Layout</h3>
             <ul>
                <li>
-                  <strong>Bottom bar height</strong> — tinggi bottom bar di
-                  semua panel (default 24, range 20–40).
+                  <strong>Bottom bar</strong> — tinggi status bar di semua
+                  panel (default 24, range 20–60).
                </li>
                <li>
-                  <strong>Tab max width</strong> — lebar maksimum setiap tab
-                  (default 80–300).
+                  <strong>Tab width</strong> — lebar maksimum setiap tab di tab
+                  bar (default 200, range 80–300).
+               </li>
+               <li>
+                  <strong>Tab size</strong> — jumlah spasi per tingkat
+                  indentasi (default 2, range 1–8).
                </li>
             </ul>
+
+            <Hint variant="info">
+               Semua nilai angka memakai tombol <strong>−</strong> /{' '}
+               <strong>+</strong>. Klik tahan untuk ubah cepat. Nilai tersimpan
+               otomatis.
+            </Hint>
 
             <h3>Bahasa & highlighting</h3>
             <p>
@@ -859,7 +1018,110 @@ VITE_B2_REGION=us-xxx-xxx`}
       ),
    },
 
-   /* ===================== 6. Keyboard Shortcuts ===================== */
+   /* ===================== 7. Mobile ===================== */
+   {
+      id: 'mobile',
+      title: 'Mobile',
+      content: (
+         <>
+            <h2>Pakai Eggs di HP</h2>
+            <p>
+               Eggs mendukung layar kecil dengan layout drawer — panel file
+               manager dan git tidak permanen, melainkan muncul sebagai overlay.
+            </p>
+
+            <h3>
+               <Smartphone size={14} /> Cara buka panel
+            </h3>
+            <ul>
+               <li>
+                  Klik ikon{' '}
+                  <InlineIcon>
+                     <HardDrive size={14} />
+                  </InlineIcon>{' '}
+                  di toolbar kiri untuk buka <strong>file manager</strong> (drawer
+                  kiri).
+               </li>
+               <li>
+                  Klik ikon git di toolbar kanan untuk buka{' '}
+                  <strong>git panel</strong> (drawer kanan).
+               </li>
+               <li>
+                  Klik area gelap di luar drawer, atau tekan tombol ✕, untuk
+                  menutup.
+               </li>
+            </ul>
+
+            <Hint variant="info">
+               Di mobile, kamu <strong>tidak bisa membuka dua drawer sekaligus</strong>{' '}
+               — membuka satu akan menutup yang lain. Ini supaya konten editor
+               tetap fokus.
+            </Hint>
+
+            <h3>Default tampilan</h3>
+            <ul>
+               <li>
+                  <strong>PC</strong> — file manager & git panel dua-duanya
+                  terbuka default.
+               </li>
+               <li>
+                  <strong>Mobile</strong> — kedua drawer tertutup default,
+                  fokus ke editor.
+               </li>
+               <li>
+                  Status buka/tutup <strong>diingat per-device</strong> — buka
+                  file manager di HP, refresh, tetap terbuka.
+               </li>
+            </ul>
+
+            <h3>Auto-close drawer</h3>
+            <p>
+               Drawer otomatis tertutup saat:
+            </p>
+            <ul>
+               <li>Kamu pilih file dari file manager.</li>
+               <li>Kamu buka diff view.</li>
+               <li>Kamu buka help (tutorial).</li>
+               <li>Kamu ganti source mode (Local / GitHub / B2).</li>
+            </ul>
+
+            <h3>Klik tahan (hold to repeat)</h3>
+            <p>
+               Tombol <strong>−</strong> / <strong>+</strong> di panel settings
+               bisa <strong>ditahan</strong> untuk ubah nilai berulang cepat.
+            </p>
+            <ul>
+               <li>Tap sekali → naik/turun 1 step.</li>
+               <li>Tap tahan 0.4 detik → auto-repeat setiap 60ms.</li>
+               <li>Lepas → berhenti.</li>
+            </ul>
+
+            <h3>Diff di mobile</h3>
+            <p>
+               Diff menampilkan satu versi penuh pada satu waktu. Gunakan
+               switch <strong>Sebelum</strong> / <strong>Sesudah</strong> di
+               header untuk berpindah.
+            </p>
+
+            <h3>Mobile action bar</h3>
+            <p>
+               Klik tombol{' '}
+               <InlineIcon>
+                  <Wrench size={14} />
+               </InlineIcon>{' '}
+               di bottom bar editor untuk akses Undo, Redo, Select All, Copy,
+               Cut, Paste, dan Insert karakter.
+            </p>
+
+            <Hint variant="warning">
+               Beberapa shortcut keyboard (Ctrl+S, Ctrl+F, dll) tidak tersedia
+               di mobile. Gunakan tombol di UI sebagai gantinya.
+            </Hint>
+         </>
+      ),
+   },
+
+   /* ===================== 8. Keyboard Shortcuts ===================== */
    {
       id: 'shortcuts',
       title: 'Keyboard Shortcuts',
@@ -958,7 +1220,7 @@ VITE_B2_REGION=us-xxx-xxx`}
       ),
    },
 
-   /* ===================== 7. Troubleshooting ===================== */
+   /* ===================== 9. Troubleshooting ===================== */
    {
       id: 'troubleshooting',
       title: 'Troubleshooting',
@@ -1108,11 +1370,36 @@ VITE_B2_REGION=us-xxx-xxx`}
                klik "Clear browsing data" di browser, atau aktifkan opsi
                "Keep local data" untuk domain editor kamu.
             </Hint>
+
+            <h3>
+               <Bug size={14} /> Zoom UI bikin tampilan tidak pas
+            </h3>
+            <p>
+               <strong>Penyebab:</strong> di beberapa browser lama, zoom
+               mengubah tinggi efektif halaman.
+            </p>
+            <p>
+               <strong>Solusi:</strong>
+            </p>
+            <ol>
+               <li>
+                  Klik angka persen di panel settings untuk{' '}
+                  <strong>reset ke 100%</strong>.
+               </li>
+               <li>
+                  Kalau masih bermasalah, klik <strong>Reset ke default</strong>{' '}
+                  di panel settings.
+               </li>
+               <li>
+                  Update browser ke versi terbaru (butuh dukungan CSS{' '}
+                  <code>zoom</code> & <code>dvh</code>).
+               </li>
+            </ol>
          </>
       ),
    },
 
-   /* ===================== 8. FAQ ===================== */
+   /* ===================== 10. FAQ ===================== */
    {
       id: 'faq',
       title: 'FAQ',
@@ -1259,10 +1546,11 @@ VITE_B2_REGION=us-xxx-xxx`}
             </h3>
             <ul>
                <li>
-                  <strong>Frontend:</strong> React 18 + TypeScript + Vite
+                  <strong>Frontend:</strong> React 19 + TypeScript + Vite
                </li>
                <li>
-                  <strong>Editor:</strong> CodeMirror 6
+                  <strong>Editor:</strong> CodeMirror 6 + @codemirror/merge
+                  (diff)
                </li>
                <li>
                   <strong>GitHub integration:</strong> Octokit REST + OAuth
@@ -1280,7 +1568,7 @@ VITE_B2_REGION=us-xxx-xxx`}
       ),
    },
 
-   /* ===================== 9. Tips & Trik ===================== */
+   /* ===================== 11. Tips & Trik ===================== */
    {
       id: 'tips',
       title: 'Tips & Trik',
@@ -1314,6 +1602,15 @@ VITE_B2_REGION=us-xxx-xxx`}
             </p>
 
             <h3>
+               <Zap size={14} /> Cek diff sebelum commit
+            </h3>
+            <p>
+               Sebelum Push / Save All, klik file di panel Changes untuk lihat
+               diff. Berguna untuk pastikan hanya perubahan yang diinginkan
+               yang akan tersimpan.
+            </p>
+
+            <h3>
                <Zap size={14} /> Search & replace
             </h3>
             <p>
@@ -1333,12 +1630,12 @@ VITE_B2_REGION=us-xxx-xxx`}
             </p>
 
             <h3>
-               <Zap size={14} /> Atur font size cepat
+               <Zap size={14} /> Zoom UI untuk presentasi / demo
             </h3>
             <p>
-               Buka panel Settings editor (ikon sliders), atur{' '}
-               <strong>Font size</strong> dan <strong>Line height</strong>{' '}
-               sesuai kenyamanan. Tidak perlu restart — langsung terasa.
+               Saat presentasi atau demo, naikkan <strong>UI zoom</strong> ke
+               150–200% supaya kode lebih mudah dibaca audiens. Setelah selesai,
+               klik angka persen untuk reset ke 100%.
             </p>
 
             <h3>
@@ -1426,7 +1723,7 @@ VITE_B2_REGION=us-xxx-xxx`}
       ),
    },
 
-   /* ===================== 10. Tentang ===================== */
+   /* ===================== 12. Tentang ===================== */
    {
       id: 'about',
       title: 'Tentang',
@@ -1447,6 +1744,8 @@ VITE_B2_REGION=us-xxx-xxx`}
                <li>File manager dengan drag & drop</li>
                <li>Multi-tab editing</li>
                <li>Markdown preview real-time</li>
+               <li>Diff view side-by-side dengan @codemirror/merge</li>
+               <li>UI zoom (50–200%)</li>
                <li>Integrasi GitHub (device flow + PAT)</li>
                <li>Integrasi Backblaze B2 (S3-compatible)</li>
                <li>Custom font upload</li>
@@ -1467,7 +1766,7 @@ VITE_B2_REGION=us-xxx-xxx`}
                <tbody>
                   <tr>
                      <td>UI Framework</td>
-                     <td>React 18 + TypeScript</td>
+                     <td>React 19 + TypeScript</td>
                   </tr>
                   <tr>
                      <td>Build tool</td>
@@ -1476,6 +1775,10 @@ VITE_B2_REGION=us-xxx-xxx`}
                   <tr>
                      <td>Editor</td>
                      <td>CodeMirror 6</td>
+                  </tr>
+                  <tr>
+                     <td>Diff</td>
+                     <td>@codemirror/merge</td>
                   </tr>
                   <tr>
                      <td>GitHub API</td>
@@ -1530,6 +1833,10 @@ VITE_B2_REGION=us-xxx-xxx`}
                </li>
                <li>
                   B2: egress gratis 3× rata-rata storage bulanan.
+               </li>
+               <li>
+                  Diff view bersifat read-only (tidak bisa edit langsung di
+                  diff).
                </li>
             </ul>
 

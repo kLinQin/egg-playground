@@ -28,6 +28,9 @@ type Props = {
    onRestore: (fileId: string) => void;
    onRestoreAll: () => void;
 
+   /* diff */
+   onOpenDiff?: (fileId: string) => void;
+
    /* teks label */
    savedTitle: string;
    emptyText?: string;
@@ -55,6 +58,7 @@ export function ChangesList({
    onUnstageAll,
    onRestore,
    onRestoreAll,
+   onOpenDiff,
    savedTitle,
    emptyText = 'Tidak ada perubahan.',
 }: Props) {
@@ -194,11 +198,18 @@ export function ChangesList({
                         {statusLabel(c.status)}
                      </span>
 
-                     <StatusIcon status={c.status} />
-
-                     <span className="change-item__name" title={c.file.name}>
-                        {c.file.name}
-                     </span>
+                     <button
+                        type="button"
+                        className="change-item__open"
+                        onClick={() => onOpenDiff?.(c.file.id)}
+                        disabled={!onOpenDiff}
+                        title={onOpenDiff ? 'Lihat diff' : undefined}
+                     >
+                        <StatusIcon status={c.status} />
+                        <span className="change-item__name" title={c.file.name}>
+                           {c.file.name}
+                        </span>
+                     </button>
 
                      {isSaved && (
                         <span className="change-item__saved" title={savedTitle}>

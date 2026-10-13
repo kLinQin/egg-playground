@@ -7,6 +7,8 @@
    align-items: center;
    justify-content: center;
    z-index: 1000;
+   padding: 16px;
+   box-sizing: border-box;
 }
 
 .dialog {
@@ -14,8 +16,11 @@
    border: 1px solid var(--border);
    border-radius: 1px;
    padding: 20px;
-   min-width: 320px;
-   max-width: 90vw;
+   width: min(calc(90vw / var(--ui-zoom, 1)), 420px);
+   max-width: calc(100vw / var(--ui-zoom, 1));
+   max-height: calc(85vh / var(--ui-zoom, 1));
+   overflow-y: auto;
+   box-sizing: border-box;
 }
 
 .dialog__title {
@@ -35,6 +40,7 @@
    display: flex;
    justify-content: flex-end;
    gap: 8px;
+   flex-wrap: wrap;
 }
 
 /* ===================== Toast ===================== */

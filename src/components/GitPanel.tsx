@@ -52,6 +52,7 @@ type Props = {
    onStageAll: () => void;
    onUnstageAll: () => void;
    onRestoreAll: () => void;
+   onOpenDiff?: (fileId: string) => void;
 };
 
 type DeviceState =
@@ -218,6 +219,7 @@ export function GitPanel({
    onStageAll,
    onUnstageAll,
    onRestoreAll,
+   onOpenDiff,
 }: Props) {
    const {
       token,
@@ -257,6 +259,7 @@ export function GitPanel({
    const [commits, setCommits] = useState<CommitOption[]>([]);
    const [commitsLoading, setCommitsLoading] = useState(false);
    const [commitsError, setCommitsError] = useState<string | null>(null);
+   const [hasFetchedCommits, setHasFetchedCommits] = useState(false);
 
    const [configOpen, setConfigOpen] = useState(false);
    const [historyOpen, setHistoryOpen] = useState(false);
@@ -301,6 +304,7 @@ export function GitPanel({
       setCommitsError(null);
       const result = await listCommits(cfg);
       setCommitsLoading(false);
+      setHasFetchedCommits(true);
       if (result.ok) {
          setCommits(result.commits);
       } else {
@@ -393,40 +397,6 @@ export function GitPanel({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [token, owner, repo]);
 
-   /* fetch commits setelah branch dipilih */
-   useEffect(() => {
-      if (!token || !owner || !repo || !branch) {
-         setCommits([]);
-         setCommitsError(null);
-         return;
-      }
-      let cancelled = false;
-
-      (async () => {
-         setCommitsLoading(true);
-         setCommitsError(null);
-         const result = await listCommits({
-            token,
-            owner,
-            repo,
-            branch,
-         });
-         if (cancelled) return;
-         setCommitsLoading(false);
-         if (result.ok) {
-            setCommits(result.commits);
-         } else {
-            setCommits([]);
-            setCommitsError(result.message);
-         }
-      })();
-
-      return () => {
-         cancelled = true;
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [token, owner, repo, branch]);
-
    const handleVerify = async () => {
       setVerifyState({ state: 'busy' });
       const result = await verifyToken(config);
@@ -496,6 +466,7 @@ export function GitPanel({
       setBranches([]);
       setCommits([]);
       setCommitsError(null);
+      setHasFetchedCommits(false);
       setVerifyState({ state: 'idle' });
       setDeviceState({ state: 'idle' });
       setConfigOpen(false);
@@ -506,6 +477,16 @@ export function GitPanel({
    const handleRefreshCommits = () => {
       if (!canAct) return;
       fetchCommits(config);
+   };
+
+   const handleToggleHistory = () => {
+      const next = !historyOpen;
+      setHistoryOpen(next);
+
+      /* fetch hanya saat membuka pertama kali */
+      if (next && canAct && !hasFetchedCommits) {
+         fetchCommits(config);
+      }
    };
 
    const ownerOptions = owners.map((o) => ({
@@ -637,7 +618,7 @@ export function GitPanel({
                         className="git-verify__avatar"
                      />
                      <span className="git-verify__text">
-                        Terhubung sebagai <strong>{verifyState.login}</strong>
+                        Terhubung = <strong>{verifyState.login}</strong>
                      </span>
                      <button
                         className="icon-btn git-verify__logout"
@@ -670,6 +651,7 @@ export function GitPanel({
                         setRepos([]);
                         setBranches([]);
                         setCommits([]);
+                        setHasFetchedCommits(false);
                      }}
                      disabled={owners.length === 0}
                      loading={ownersLoading}
@@ -693,6 +675,7 @@ export function GitPanel({
                         setBranch('');
                         setBranches([]);
                         setCommits([]);
+                        setHasFetchedCommits(false);
                      }}
                      disabled={!owner || repos.length === 0}
                      loading={reposLoading}
@@ -715,6 +698,7 @@ export function GitPanel({
                      onSelect={(v) => {
                         setBranch(v);
                         setCommits([]);
+                        setHasFetchedCommits(false);
                      }}
                      disabled={!repo || branches.length === 0}
                      loading={branchesLoading}
@@ -871,6 +855,7 @@ export function GitPanel({
                         onUnstageAll={onUnstageAll}
                         onRestore={onRestore}
                         onRestoreAll={onRestoreAll}
+                        onOpenDiff={onOpenDiff}
                         savedTitle="Sudah disave, tunggu Push"
                      />
                   </>
@@ -885,20 +870,20 @@ export function GitPanel({
             ) : (
                <>
                   <GitBranch size={11} />
-                  <span className="status-bar__item">
-                     {owner || '—'}/{repo || '—'}
-                  </span>
-                  <span className="status-bar__sep" />
-                  <span className="status-bar__item">{branch || '—'}</span>
+                  <span className="status-bar__item">{repo || '—'}</span>
                   <span className="status-bar__spacer" />
                   <button
                      type="button"
                      className={`status-bar__history-btn ${historyOpen ? 'is-active' : ''}`}
-                     onClick={() => setHistoryOpen((v) => !v)}
+                     onClick={handleToggleHistory}
                      title={historyOpen ? 'Tutup history' : 'Buka history'}
                   >
                      <GitCommit size={12} />
-                     <span>History ({commits.length})</span>
+                     <span>
+                        {hasFetchedCommits
+                           ? `History (${commits.length})`
+                           : 'History'}
+                     </span>
                   </button>
                </>
             )}

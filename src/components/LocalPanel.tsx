@@ -17,6 +17,7 @@ type Props = {
    onDiscardAll: () => void;
    onSaveAll: () => void;
    saving: boolean;
+   onOpenDiff?: (fileId: string) => void;
 };
 
 export function LocalPanel({
@@ -27,6 +28,7 @@ export function LocalPanel({
    onDiscardAll,
    onSaveAll,
    saving,
+   onOpenDiff,
 }: Props) {
    const hasChanges = changes.length > 0;
 
@@ -135,6 +137,7 @@ export function LocalPanel({
                pendingIds={pendingIds}
                onRestore={onDiscard}
                onRestoreAll={onDiscardAll}
+               onOpenDiff={onOpenDiff}
                savedTitle="Sudah disave, tunggu Save All"
             />
          ) : (

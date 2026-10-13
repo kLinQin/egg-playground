@@ -134,6 +134,8 @@ export type EditorSettings = {
    bottomBarHeight: number;
    /** lebar maksimum setiap tab di tab bar */
    tabMaxWidth: number;
+   /** tinggi header (file manager, tab bar, panel, diff view) */
+   headerHeight: number;
 };
 
 /* ===================== Sumber file ===================== */

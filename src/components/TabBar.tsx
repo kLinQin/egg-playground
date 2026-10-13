@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, SlidersHorizontal, Eye, Code2, Save } from 'lucide-react';
+import { X, SlidersHorizontal, Eye, Code2, Save, RotateCcw } from 'lucide-react';
 import type { FileItem, EditorSettings } from '../types';
 import { getFileIcon } from '../lib/fileIcons';
+import { StepperControl } from './StepperControl';
+import { ZoomControl } from './ZoomControl';
 
 type Props = {
    files: FileItem[];
@@ -14,9 +16,18 @@ type Props = {
       key: K,
       value: EditorSettings[K]
    ) => void;
+   onResetSettings: () => void;
    previewOpen: boolean;
    onTogglePreview: () => void;
    onSave: () => void;
+
+   /* zoom UI */
+   zoom: number;
+   onZoomIn: () => void;
+   onZoomOut: () => void;
+   onZoomReset: () => void;
+   zoomMin: number;
+   zoomMax: number;
 };
 
 export function TabBar({
@@ -27,13 +38,21 @@ export function TabBar({
    onClose,
    settings,
    onChangeSettings,
+   onResetSettings,
    previewOpen,
    onTogglePreview,
    onSave,
+   zoom,
+   onZoomIn,
+   onZoomOut,
+   onZoomReset,
+   zoomMin,
+   zoomMax,
 }: Props) {
    const scrollRef = useRef<HTMLDivElement>(null);
    const settingsRef = useRef<HTMLDivElement>(null);
    const [settingsOpen, setSettingsOpen] = useState(false);
+   const [confirmReset, setConfirmReset] = useState(false);
 
    /* auto-scroll ke tab aktif */
    useEffect(() => {
@@ -57,11 +76,28 @@ export function TabBar({
          const target = e.target as Node;
          if (settingsRef.current && !settingsRef.current.contains(target)) {
             setSettingsOpen(false);
+            setConfirmReset(false);
          }
       };
       document.addEventListener('mousedown', onClick);
       return () => document.removeEventListener('mousedown', onClick);
    }, [settingsOpen]);
+
+   /* Escape → tutup dropdown / cancel reset */
+   useEffect(() => {
+      if (!settingsOpen) return;
+      const onKey = (e: KeyboardEvent) => {
+         if (e.key === 'Escape') {
+            if (confirmReset) {
+               setConfirmReset(false);
+            } else {
+               setSettingsOpen(false);
+            }
+         }
+      };
+      document.addEventListener('keydown', onKey);
+      return () => document.removeEventListener('keydown', onKey);
+   }, [settingsOpen, confirmReset]);
 
    const visibleTabs = tabs
       .map((id) => files.find((f) => f.id === id))
@@ -75,6 +111,15 @@ export function TabBar({
       ? activeFile.kind === 'file' &&
       (activeFile.isNew || activeFile.content !== activeFile.savedContent)
       : false;
+
+   const handleResetClick = () => {
+      if (confirmReset) {
+         onResetSettings();
+         setConfirmReset(false);
+      } else {
+         setConfirmReset(true);
+      }
+   };
 
    return (
       <div className="tab-bar">
@@ -163,7 +208,10 @@ export function TabBar({
          <div className="tab-bar__settings" ref={settingsRef}>
             <button
                className="icon-btn"
-               onClick={() => setSettingsOpen((v) => !v)}
+               onClick={() => {
+                  setSettingsOpen((v) => !v);
+                  setConfirmReset(false);
+               }}
                title="Editor settings"
             >
                <SlidersHorizontal size={14} />
@@ -171,72 +219,109 @@ export function TabBar({
 
             {settingsOpen && (
                <div className="dropdown__menu dropdown--menu-left editor-settings">
-                  <label className="editor-settings__row">
-                     <span>Font size</span>
-                     <input
-                        type="number"
-                        min={10}
-                        max={32}
-                        value={settings.fontSize}
-                        onChange={(e) =>
-                           onChangeSettings(
-                              'fontSize',
-                              Number(e.target.value) || 14
-                           )
-                        }
-                     />
-                  </label>
-
-                  <label className="editor-settings__row">
-                     <span>Line height</span>
-                     <input
-                        type="number"
-                        min={1}
-                        max={3}
-                        step={0.1}
-                        value={settings.lineHeight}
-                        onChange={(e) =>
-                           onChangeSettings(
-                              'lineHeight',
-                              Number(e.target.value) || 1.5
-                           )
-                        }
-                     />
-                  </label>
+                  {/* ---------- Reset all ---------- */}
+                  <button
+                     type="button"
+                     className={`editor-settings__reset ${confirmReset ? 'is-confirming' : ''}`}
+                     onClick={handleResetClick}
+                     onMouseLeave={() => {
+                        if (confirmReset) setConfirmReset(false);
+                     }}
+                  >
+                     <RotateCcw size={13} />
+                     <span>
+                        {confirmReset
+                           ? 'Klik lagi untuk konfirmasi'
+                           : 'Reset ke default'}
+                     </span>
+                  </button>
 
                   <div className="dropdown__sep" />
 
-                  <label className="editor-settings__row">
-                     <span>Bottom bar height</span>
-                     <input
-                        type="number"
-                        min={20}
-                        max={40}
-                        value={settings.bottomBarHeight}
-                        onChange={(e) =>
-                           onChangeSettings(
-                              'bottomBarHeight',
-                              Number(e.target.value) || 24
-                           )
-                        }
+                  {/* ---------- Zoom UI ---------- */}
+                  <div className="editor-settings__row">
+                     <span>UI zoom</span>
+                     <ZoomControl
+                        zoom={zoom}
+                        onZoomIn={onZoomIn}
+                        onZoomOut={onZoomOut}
+                        onReset={onZoomReset}
+                        min={zoomMin}
+                        max={zoomMax}
                      />
-                  </label>
+                  </div>
 
-                  <label className="editor-settings__row">
-                     <span>Tab max width</span>
-                     <input
-                        type="number"
+                  <div className="dropdown__sep" />
+
+                  <div className="editor-settings__row">
+                     <span>Font size</span>
+                     <StepperControl
+                        value={settings.fontSize}
+                        onChange={(v) => onChangeSettings('fontSize', v)}
+                        min={10}
+                        max={32}
+                        format={(v) => `${v}px`}
+                     />
+                  </div>
+
+                  <div className="editor-settings__row">
+                     <span>Line height</span>
+                     <StepperControl
+                        value={settings.lineHeight}
+                        onChange={(v) => onChangeSettings('lineHeight', v)}
+                        min={1}
+                        max={3}
+                        step={0.1}
+                        format={(v) => v.toFixed(1)}
+                     />
+                  </div>
+
+                  <div className="editor-settings__row">
+                     <span>Header height</span>
+                     <StepperControl
+                        value={settings.headerHeight}
+                        onChange={(v) => onChangeSettings('headerHeight', v)}
+                        min={24}
+                        max={60}
+                        format={(v) => `${v}px`}
+                     />
+                  </div>
+
+                  <div className="editor-settings__row">
+                     <span>Bottom bar</span>
+                     <StepperControl
+                        value={settings.bottomBarHeight}
+                        onChange={(v) =>
+                           onChangeSettings('bottomBarHeight', v)
+                        }
+                        min={20}
+                        max={60}
+                        format={(v) => `${v}px`}
+                     />
+                  </div>
+
+                  <div className="editor-settings__row">
+                     <span>Tab width</span>
+                     <StepperControl
+                        value={settings.tabMaxWidth}
+                        onChange={(v) => onChangeSettings('tabMaxWidth', v)}
                         min={80}
                         max={300}
-                        value={settings.tabMaxWidth}
-                        onChange={(e) =>
-                           onChangeSettings(
-                              'tabMaxWidth',
-                              Number(e.target.value) || 200
-                           )
-                        }
+                        step={10}
+                        format={(v) => `${v}px`}
                      />
-                  </label>
+                  </div>
+
+                  <div className="editor-settings__row">
+                     <span>Tab size</span>
+                     <StepperControl
+                        value={settings.tabSize}
+                        onChange={(v) => onChangeSettings('tabSize', v)}
+                        min={1}
+                        max={8}
+                        format={(v) => String(v)}
+                     />
+                  </div>
 
                   <div className="dropdown__sep" />
 
@@ -316,6 +401,17 @@ export function TabBar({
                         checked={settings.closeBrackets}
                         onChange={(e) =>
                            onChangeSettings('closeBrackets', e.target.checked)
+                        }
+                     />
+                  </label>
+
+                  <label className="editor-settings__row">
+                     <span>Indent with tabs</span>
+                     <input
+                        type="checkbox"
+                        checked={settings.indentWithTabs}
+                        onChange={(e) =>
+                           onChangeSettings('indentWithTabs', e.target.checked)
                         }
                      />
                   </label>
