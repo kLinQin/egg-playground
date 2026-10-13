@@ -89,29 +89,6 @@ function isTextFile(name: string): boolean {
    return TEXT_EXTENSIONS.includes(ext);
 }
 
-/* ===================== Helper: base64 UTF-8 ===================== */
-
-function encodeBase64Utf8(text: string): string {
-   const bytes = new TextEncoder().encode(text);
-   let binary = '';
-   const chunk = 0x8000;
-   for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode(
-         ...(bytes.subarray(i, i + chunk) as unknown as number[])
-      );
-   }
-   return btoa(binary);
-}
-
-function decodeBase64Utf8(base64: string): string {
-   const binary = atob(base64.replace(/\n/g, ''));
-   const bytes = new Uint8Array(binary.length);
-   for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-   }
-   return new TextDecoder('utf-8').decode(bytes);
-}
-
 /* ===================== Helper: sha1 (untuk manifest) ===================== */
 
 async function sha1Hex(text: string): Promise<string> {
@@ -298,7 +275,7 @@ export async function pullCloud(config: B2Config): Promise<PullResult> {
 export async function syncFiles(
    config: B2Config,
    operations: SyncOperation[],
-   commitMessage: string
+   _commitMessage: string
 ): Promise<SyncResult> {
    if (operations.length === 0) {
       return { ok: false, message: 'Tidak ada operasi untuk disinkronkan.' };

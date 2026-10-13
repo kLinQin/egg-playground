@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import {
-   Lightbulb,
    FolderPlus,
    MoreHorizontal,
    Trash2,
