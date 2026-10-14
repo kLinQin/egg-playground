@@ -182,9 +182,9 @@ export function TabBar({
          {isDirty && (
             <div className="tab-bar__action">
                <button
-                  className="icon-btn"
+                  className="icon-btn tab-bar__save-btn"
                   onClick={onSave}
-                  title="Simpan (Ctrl+S)"
+                  title="Belum disimpan — klik untuk simpan (Ctrl+S)"
                >
                   <Save size={14} />
                </button>

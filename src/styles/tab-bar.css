@@ -146,3 +146,13 @@
    border-left: 1px solid var(--border);
    flex-shrink: 0;
 }
+
+/* ---------- Tab bar: tombol Save saat ada perubahan belum disimpan ---------- */
+.tab-bar__save-btn {
+   color: var(--danger);
+}
+
+.tab-bar__save-btn:hover:not(:disabled) {
+   color: var(--danger-hover);
+   background: var(--hover);
+}

@@ -71,7 +71,7 @@ function readStored(): StoredFont[] {
 export function useCustomFonts() {
    const [customFonts, setCustomFonts] = useState<FontChoice[]>([]);
    const [activeId, setActiveId] = useState<string>(() => {
-      return localStorage.getItem(ACTIVE_KEY) ?? 'sans';
+      return localStorage.getItem(ACTIVE_KEY) ?? 'mono';
    });
    const [error, setError] = useState<string | null>(null);
    const [ready, setReady] = useState(false);
@@ -181,12 +181,12 @@ export function useCustomFonts() {
       setCustomFonts((prev) => prev.filter((f) => f.id !== id));
       const nextStored = readStored().filter((s) => s.id !== id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextStored));
-      setActiveId((curr) => (curr === id ? 'sans' : curr));
+      setActiveId((curr) => (curr === id ? 'mono' : curr));
    }, []);
 
    const allFonts = [...BUILTIN_FONTS, ...customFonts];
    const activeFont =
-      allFonts.find((f) => f.id === activeId) ?? BUILTIN_FONTS[0];
+      allFonts.find((f) => f.id === activeId) ?? BUILTIN_FONTS[1];
 
    return {
       fonts: allFonts,

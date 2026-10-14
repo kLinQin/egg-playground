@@ -136,7 +136,7 @@ export function Toolbar({
                   type="button"
                   role="tab"
                   aria-selected={source === 'local'}
-                  className={`source-switch__btn ${source === 'local' ? 'source-switch__btn--active' : ''}`}
+                  className={`source-switch__btn source-switch__btn--local ${source === 'local' ? 'source-switch__btn--active' : ''}`}
                   onClick={() => handleSelectSource('local')}
                   title="Local (localStorage)"
                >
@@ -148,7 +148,7 @@ export function Toolbar({
                   type="button"
                   role="tab"
                   aria-selected={source === 'github'}
-                  className={`source-switch__btn ${source === 'github' ? 'source-switch__btn--active' : ''}`}
+                  className={`source-switch__btn source-switch__btn--github ${source === 'github' ? 'source-switch__btn--active' : ''}`}
                   onClick={() => handleSelectSource('github')}
                   title="GitHub repository"
                >
@@ -160,7 +160,7 @@ export function Toolbar({
                   type="button"
                   role="tab"
                   aria-selected={source === 'b2'}
-                  className={`source-switch__btn ${source === 'b2' ? 'source-switch__btn--active' : ''}`}
+                  className={`source-switch__btn source-switch__btn--b2 ${source === 'b2' ? 'source-switch__btn--active' : ''}`}
                   onClick={() => handleSelectSource('b2')}
                   title="Backblaze B2 bucket"
                >

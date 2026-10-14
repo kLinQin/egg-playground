@@ -73,12 +73,35 @@
 }
 
 .source-switch__btn--active {
-   background: var(--primary);
-   color: #fff;
+   background: transparent;
+   color: var(--text);
+   font-weight: 600;
 }
 
 .source-switch__btn--active:hover {
-   background: var(--primary-hover);
+   background: var(--hover);
+   color: var(--text);
+}
+
+/* ---------- brand colors untuk icon (hanya saat aktif) ---------- */
+.source-switch__btn--active.source-switch__btn--local svg {
+   color: #059669;
+}
+
+[data-theme='dark'] .source-switch__btn--active.source-switch__btn--local svg {
+   color: #10b981;
+}
+
+.source-switch__btn--active.source-switch__btn--github svg {
+   color: #181717;
+}
+
+[data-theme='dark'] .source-switch__btn--active.source-switch__btn--github svg {
+   color: #ffffff;
+}
+
+.source-switch__btn--active.source-switch__btn--b2 svg {
+   color: #e21e29;
 }
 
 /* ===================== Icon button ===================== */
@@ -129,7 +152,6 @@
 .dropdown--menu-left .dropdown__menu {
    right: auto;
    left: 0;
-   
 }
 
 .dropdown__item {

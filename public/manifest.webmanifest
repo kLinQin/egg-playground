@@ -1,0 +1,20 @@
+{
+   "name": "Eggs — Editor kode mini di browser",
+   "short_name": "Eggs",
+   "description": "Edit kode langsung di browser. Support Local, GitHub, dan Backblaze B2.",
+   "start_url": "/",
+   "scope": "/",
+   "display": "standalone",
+   "orientation": "any",
+   "background_color": "#1e1e1e",
+   "theme_color": "#1e1e1e",
+   "lang": "id",
+   "icons": [
+      {
+         "src": "/favicon.svg",
+         "sizes": "any",
+         "type": "image/svg+xml",
+         "purpose": "any"
+      }
+   ]
+}

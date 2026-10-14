@@ -107,7 +107,7 @@ function normalizeEndpoint(endpoint: string): string {
 }
 
 function createClient(config: B2Config): S3Client {
-   return new S3Client({
+   const client = new S3Client({
       endpoint: normalizeEndpoint(config.endpoint),
       region: config.region,
       credentials: {
@@ -116,6 +116,26 @@ function createClient(config: B2Config): S3Client {
       },
       forcePathStyle: true,
    });
+
+   /* ---------- paksa setiap request lewat cache (no-cache) ----------
+      B2 punya cache di edge yang kadang bikin manifest stale.
+      Dengan menyisipkan header Cache-Control: no-cache di SETIAP request,
+      kita minta B2 kirim versi terbaru. */
+   client.middlewareStack.add(
+      (next) => async (args) => {
+         const req = args.request as {
+            headers?: Record<string, string>;
+         } | undefined;
+         if (req && req.headers) {
+            req.headers['Cache-Control'] = 'no-cache';
+            req.headers['Pragma'] = 'no-cache';
+         }
+         return next(args);
+      },
+      { step: 'build' }
+   );
+
+   return client;
 }
 
 function isNotFound(err: unknown): boolean {
@@ -161,6 +181,8 @@ async function writeManifest(
          Key: MANIFEST_PATH,
          Body: JSON.stringify(manifest),
          ContentType: 'application/json',
+         /* penting: cegah edge cache B2 simpan versi lama */
+         CacheControl: 'no-cache, no-store, must-revalidate',
       })
    );
 }
