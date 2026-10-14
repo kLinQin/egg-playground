@@ -112,6 +112,7 @@ function App() {
   } = useTabs(files);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+  
 
   const {
     filesOpen,
@@ -1389,270 +1390,273 @@ function App() {
   })();
 
   return (
-    <div
-      className="app"
-      style={
-        {
-          '--status-bar-height': `${settings.bottomBarHeight}px`,
-          '--tab-max-width': `${settings.tabMaxWidth}px`,
-          '--header-height': `${settings.headerHeight}px`,
-        } as React.CSSProperties
-      }
-    >
-      <Toolbar
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        fonts={fonts}
-        activeFontId={activeFont.id}
-        onSelectFont={setActiveFontId}
-        onUploadFont={addFontFromFile}
-        onRemoveFont={handleRequestRemoveFont}
-        onToggleGit={handleToggleGit}
-        gitOpen={gitOpen}
-        onToggleFiles={handleToggleFiles}
-        filesOpen={filesOpen}
-        source={source}
-        onChangeSource={handleChangeSource}
-        helpOpen={helpOpen}
-        onToggleHelp={handleToggleHelp}
-      />
+    <div className="app-wrapper">
+      <div
+        className="app"
+        style={
+          {
+            '--status-bar-height': `${settings.bottomBarHeight}px`,
+            '--tab-max-width': `${settings.tabMaxWidth}px`,
+            '--header-height': `${settings.headerHeight}px`,
+          } as React.CSSProperties
+        }
+      >
+        <Toolbar
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          fonts={fonts}
+          activeFontId={activeFont.id}
+          onSelectFont={setActiveFontId}
+          onUploadFont={addFontFromFile}
+          onRemoveFont={handleRequestRemoveFont}
+          onToggleGit={handleToggleGit}
+          gitOpen={gitOpen}
+          onToggleFiles={handleToggleFiles}
+          filesOpen={filesOpen}
+          source={source}
+          onChangeSource={handleChangeSource}
+          helpOpen={helpOpen}
+          onToggleHelp={handleToggleHelp}
+        />
 
-      <div className="app__body">
-        {showBackdrop && (
-          <div
-            className="drawer-backdrop"
-            onClick={closeDrawers}
-            aria-hidden="true"
-          />
-        )}
-
-        {filesOpen && (
-          <>
+        <div className="app__body">
+          {showBackdrop && (
             <div
-              className={`app__col app__col--files ${isMobile ? 'app__col--drawer app__col--drawer-left' : ''
-                }`}
-              style={
-                isMobile
-                  ? undefined
-                  : { width: filesCol.width, flexShrink: 0 }
-              }
-            >
-              <FileManager
-                files={files}
-                activeId={activeTabId}
-                changesCount={changes.length}
-                stagedCount={stagedChanges.length}
-                onSelect={handleSelectFile}
-                onToggleFolder={handleToggleFolder}
-                onCreate={handleCreate}
-                onCreateFolder={handleCreateFolder}
-                onRename={handleRename}
-                onRequestDelete={setPendingDelete}
-                onMove={handleMove}
-                showClearAll={source === 'local' && files.length > 0}
-                onRequestClearAll={handleClearAllLocal}
-              />
-            </div>
-            {!isMobile && (
-              <div
-                className="resize-handle"
-                onMouseDown={filesCol.onMouseDown}
-              />
-            )}
-          </>
-        )}
-
-        <main className="main">
-          {helpOpen ? (
-            <HelpView onClose={() => setHelpOpen(false)} />
-          ) : diffChange ? (
-            <DiffView
-              change={diffChange}
-              theme={theme}
-              fontFamily={activeFont.family}
-              settings={settings}
-              isMobile={isMobile}
-              onClose={() => setDiffFileId(null)}
+              className="drawer-backdrop"
+              onClick={closeDrawers}
+              aria-hidden="true"
             />
-          ) : (
-            <>
-              <TabBar
-                files={files}
-                tabs={tabs}
-                activeTabId={activeTabId}
-                onSelect={setActiveTab}
-                onClose={closeTab}
-                settings={settings}
-                onChangeSettings={updateSettings}
-                onResetSettings={resetSettings}
-                previewOpen={previewOpen}
-                onTogglePreview={() => setPreviewOpen((v) => !v)}
-                onSave={() => void handleSave()}
-                zoom={zoom.zoom}
-                onZoomIn={zoom.zoomIn}
-                onZoomOut={zoom.zoomOut}
-                onZoomReset={zoom.reset}
-                zoomMin={zoom.min}
-                zoomMax={zoom.max}
-              />
+          )}
 
-              {activeFile ? (
-                <Editor
-                  file={activeFile}
-                  fontFamily={activeFont.family}
-                  theme={theme}
-                  settings={settings}
-                  previewOpen={previewOpen}
-                  onChange={handleContentChange}
-                  onLanguageOverrideChange={handleLanguageOverrideChange}
-                  resetKey={editorResetKey}
+          {filesOpen && (
+            <>
+              <div
+                className={`app__col app__col--files ${isMobile ? 'app__col--drawer app__col--drawer-left' : ''
+                  }`}
+                style={
+                  isMobile
+                    ? undefined
+                    : { width: filesCol.width, flexShrink: 0 }
+                }
+              >
+                <FileManager
+                  files={files}
+                  activeId={activeTabId}
+                  changesCount={changes.length}
+                  stagedCount={stagedChanges.length}
+                  onSelect={handleSelectFile}
+                  onToggleFolder={handleToggleFolder}
+                  onCreate={handleCreate}
+                  onCreateFolder={handleCreateFolder}
+                  onRename={handleRename}
+                  onRequestDelete={setPendingDelete}
+                  onMove={handleMove}
+                  showClearAll={source === 'local' && files.length > 0}
+                  onRequestClearAll={handleClearAllLocal}
                 />
-              ) : (
-                <div className="editor-placeholder">Pilih atau buat file</div>
+              </div>
+              {!isMobile && (
+                <div
+                  className="resize-handle"
+                  onMouseDown={filesCol.onMouseDown}
+                />
               )}
             </>
           )}
-        </main>
 
-        {gitOpen && (
-          <>
-            {!isMobile && (
-              <div
-                className="resize-handle"
-                onMouseDown={gitCol.onMouseDown}
+          <main className="main">
+            {helpOpen ? (
+              <HelpView onClose={() => setHelpOpen(false)} />
+            ) : diffChange ? (
+              <DiffView
+                change={diffChange}
+                theme={theme}
+                fontFamily={activeFont.family}
+                settings={settings}
+                isMobile={isMobile}
+                onClose={() => setDiffFileId(null)}
               />
+            ) : (
+              <>
+                <TabBar
+                  files={files}
+                  tabs={tabs}
+                  activeTabId={activeTabId}
+                  onSelect={setActiveTab}
+                  onClose={closeTab}
+                  settings={settings}
+                  onChangeSettings={updateSettings}
+                  onResetSettings={resetSettings}
+                  previewOpen={previewOpen}
+                  onTogglePreview={() => setPreviewOpen((v) => !v)}
+                  onSave={() => void handleSave()}
+                  zoom={zoom.zoom}
+                  onZoomIn={zoom.zoomIn}
+                  onZoomOut={zoom.zoomOut}
+                  onZoomReset={zoom.reset}
+                  zoomMin={zoom.min}
+                  zoomMax={zoom.max}
+                  isMobile={isMobile}
+                />
+
+                {activeFile ? (
+                  <Editor
+                    file={activeFile}
+                    fontFamily={activeFont.family}
+                    theme={theme}
+                    settings={settings}
+                    previewOpen={previewOpen}
+                    onChange={handleContentChange}
+                    onLanguageOverrideChange={handleLanguageOverrideChange}
+                    resetKey={editorResetKey}
+                  />
+                ) : (
+                  <div className="editor-placeholder">Pilih atau buat file</div>
+                )}
+              </>
             )}
-            <div
-              className={`app__col app__col--git ${isMobile ? 'app__col--drawer app__col--drawer-right' : ''
-                }`}
-              style={
-                isMobile ? undefined
-                  : { width: gitCol.width, flexShrink: 0 }
-              }
-            >
-              {source === 'github' ? (
-                <Suspense
-                  fallback={
-                    <div className="editor-placeholder">Memuat Git panel…</div>
-                  }
-                >
-                  <GitPanel
-                    status={gitStatus}
-                    onPull={handlePull}
-                    onPush={handlePush}
-                    onClearAll={handleClearAll}
-                    changes={changes}
-                    pendingIds={pendingIds}
-                    onStage={handleStage}
-                    onUnstage={handleUnstage}
-                    onRestore={handleDiscard}
-                    onStageAll={handleStageAll}
-                    onUnstageAll={handleUnstageAll}
-                    onRestoreAll={handleDiscardAll}
-                    onOpenDiff={openDiff}
-                  />
-                </Suspense>
-              ) : source === 'b2' ? (
-                <Suspense
-                  fallback={
-                    <div className="editor-placeholder">Memuat B2 panel…</div>
-                  }
-                >
-                  <B2Panel
-                    status={gitStatus}
-                    onPull={handleB2Pull}
-                    onPush={handleB2Push}
-                    onClearAll={handleClearAll}
-                    changes={changes}
-                    pendingIds={pendingIds}
-                    onStage={handleStage}
-                    onUnstage={handleUnstage}
-                    onRestore={handleDiscard}
-                    onStageAll={handleStageAll}
-                    onUnstageAll={handleUnstageAll}
-                    onRestoreAll={handleDiscardAll}
-                    onOpenDiff={openDiff}
-                  />
-                </Suspense>
-              ) : (
-                <LocalPanel
-                  status={gitStatus}
-                  changes={changes}
-                  pendingIds={pendingIds}
-                  onDiscard={handleDiscard}
-                  onDiscardAll={handleDiscardAll}
-                  onSaveAll={() => void handleSaveAll()}
-                  saving={saving}
-                  onOpenDiff={openDiff}
+          </main>
+
+          {gitOpen && (
+            <>
+              {!isMobile && (
+                <div
+                  className="resize-handle"
+                  onMouseDown={gitCol.onMouseDown}
                 />
               )}
-            </div>
-          </>
+              <div
+                className={`app__col app__col--git ${isMobile ? 'app__col--drawer app__col--drawer-right' : ''
+                  }`}
+                style={
+                  isMobile ? undefined
+                    : { width: gitCol.width, flexShrink: 0 }
+                }
+              >
+                {source === 'github' ? (
+                  <Suspense
+                    fallback={
+                      <div className="editor-placeholder">Memuat Git panel…</div>
+                    }
+                  >
+                    <GitPanel
+                      status={gitStatus}
+                      onPull={handlePull}
+                      onPush={handlePush}
+                      onClearAll={handleClearAll}
+                      changes={changes}
+                      pendingIds={pendingIds}
+                      onStage={handleStage}
+                      onUnstage={handleUnstage}
+                      onRestore={handleDiscard}
+                      onStageAll={handleStageAll}
+                      onUnstageAll={handleUnstageAll}
+                      onRestoreAll={handleDiscardAll}
+                      onOpenDiff={openDiff}
+                    />
+                  </Suspense>
+                ) : source === 'b2' ? (
+                  <Suspense
+                    fallback={
+                      <div className="editor-placeholder">Memuat B2 panel…</div>
+                    }
+                  >
+                    <B2Panel
+                      status={gitStatus}
+                      onPull={handleB2Pull}
+                      onPush={handleB2Push}
+                      onClearAll={handleClearAll}
+                      changes={changes}
+                      pendingIds={pendingIds}
+                      onStage={handleStage}
+                      onUnstage={handleUnstage}
+                      onRestore={handleDiscard}
+                      onStageAll={handleStageAll}
+                      onUnstageAll={handleUnstageAll}
+                      onRestoreAll={handleDiscardAll}
+                      onOpenDiff={openDiff}
+                    />
+                  </Suspense>
+                ) : (
+                  <LocalPanel
+                    status={gitStatus}
+                    changes={changes}
+                    pendingIds={pendingIds}
+                    onDiscard={handleDiscard}
+                    onDiscardAll={handleDiscardAll}
+                    onSaveAll={() => void handleSaveAll()}
+                    saving={saving}
+                    onOpenDiff={openDiff}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <ConfirmDialog
+          open={!!pendingDelete}
+          title={pendingDelete?.kind === 'folder' ? 'Hapus folder?' : 'Hapus file?'}
+          message={
+            pendingDelete
+              ? `"${pendingDelete.name}"${pendingDelete.kind === 'folder' ? ' dan semua isinya' : ''
+              } akan dihapus.`
+              : ''
+          }
+          confirmLabel="Hapus"
+          danger
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+
+        <ConfirmDialog
+          open={!!pendingGit}
+          title={gitDialogContent.title}
+          message={gitDialogContent.message}
+          confirmLabel={
+            pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
+              ? 'Pull'
+              : 'Push'
+          }
+          danger={
+            pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
+          }
+          onConfirm={handleConfirmGit}
+          onCancel={() => setPendingGit(null)}
+        />
+
+        <ConfirmDialog
+          open={!!pendingFontDelete}
+          title="Hapus font?"
+          message={
+            pendingFontDelete
+              ? `Font "${pendingFontDelete.label}" akan dihapus dari daftar. Lanjutkan?`
+              : ''
+          }
+          confirmLabel="Hapus"
+          danger
+          onConfirm={handleConfirmRemoveFont}
+          onCancel={() => setPendingFontDelete(null)}
+        />
+
+        <ConfirmDialog
+          open={!!pendingSource}
+          title={sourceDialogContent.title}
+          message={sourceDialogContent.message}
+          cancelLabel="Batal"
+          thirdLabel="Buang & Lanjut"
+          confirmLabel="Simpan & Lanjut"
+          onCancel={handleCancelSourceChange}
+          onThird={() => handleConfirmSourceChange('discard')}
+          onConfirm={() => handleConfirmSourceChange('save')}
+        />
+
+        {fontError && (
+          <div className="toast toast--error" onClick={clearFontError}>
+            {fontError} (klik untuk tutup)
+          </div>
         )}
       </div>
-
-      <ConfirmDialog
-        open={!!pendingDelete}
-        title={pendingDelete?.kind === 'folder' ? 'Hapus folder?' : 'Hapus file?'}
-        message={
-          pendingDelete
-            ? `"${pendingDelete.name}"${pendingDelete.kind === 'folder' ? ' dan semua isinya' : ''
-            } akan dihapus.`
-            : ''
-        }
-        confirmLabel="Hapus"
-        danger
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
-
-      <ConfirmDialog
-        open={!!pendingGit}
-        title={gitDialogContent.title}
-        message={gitDialogContent.message}
-        confirmLabel={
-          pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
-            ? 'Pull'
-            : 'Push'
-        }
-        danger={
-          pendingGit?.type === 'pull' || pendingGit?.type === 'b2-pull'
-        }
-        onConfirm={handleConfirmGit}
-        onCancel={() => setPendingGit(null)}
-      />
-
-      <ConfirmDialog
-        open={!!pendingFontDelete}
-        title="Hapus font?"
-        message={
-          pendingFontDelete
-            ? `Font "${pendingFontDelete.label}" akan dihapus dari daftar. Lanjutkan?`
-            : ''
-        }
-        confirmLabel="Hapus"
-        danger
-        onConfirm={handleConfirmRemoveFont}
-        onCancel={() => setPendingFontDelete(null)}
-      />
-
-      <ConfirmDialog
-        open={!!pendingSource}
-        title={sourceDialogContent.title}
-        message={sourceDialogContent.message}
-        cancelLabel="Batal"
-        thirdLabel="Buang & Lanjut"
-        confirmLabel="Simpan & Lanjut"
-        onCancel={handleCancelSourceChange}
-        onThird={() => handleConfirmSourceChange('discard')}
-        onConfirm={() => handleConfirmSourceChange('save')}
-      />
-
-      {fontError && (
-        <div className="toast toast--error" onClick={clearFontError}>
-          {fontError} (klik untuk tutup)
-        </div>
-      )}
     </div>
   );
 }

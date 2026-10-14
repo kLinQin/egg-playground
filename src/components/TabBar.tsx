@@ -28,6 +28,8 @@ type Props = {
    onZoomReset: () => void;
    zoomMin: number;
    zoomMax: number;
+
+   isMobile: boolean;
 };
 
 export function TabBar({
@@ -48,6 +50,7 @@ export function TabBar({
    onZoomReset,
    zoomMin,
    zoomMax,
+   isMobile,
 }: Props) {
    const scrollRef = useRef<HTMLDivElement>(null);
    const settingsRef = useRef<HTMLDivElement>(null);
@@ -238,20 +241,23 @@ export function TabBar({
 
                   <div className="dropdown__sep" />
 
-                  {/* ---------- Zoom UI ---------- */}
-                  <div className="editor-settings__row">
-                     <span>UI zoom</span>
-                     <ZoomControl
-                        zoom={zoom}
-                        onZoomIn={onZoomIn}
-                        onZoomOut={onZoomOut}
-                        onReset={onZoomReset}
-                        min={zoomMin}
-                        max={zoomMax}
-                     />
-                  </div>
-
-                  <div className="dropdown__sep" />
+                  {/* ---------- Zoom UI (PC only) ---------- */}
+                  {!isMobile && (
+                     <>
+                        <div className="editor-settings__row">
+                           <span>UI zoom</span>
+                           <ZoomControl
+                              zoom={zoom}
+                              onZoomIn={onZoomIn}
+                              onZoomOut={onZoomOut}
+                              onReset={onZoomReset}
+                              min={zoomMin}
+                              max={zoomMax}
+                           />
+                        </div>
+                        <div className="dropdown__sep" />
+                     </>
+                  )}
 
                   <div className="editor-settings__row">
                      <span>Font size</span>
