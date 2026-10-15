@@ -137,6 +137,10 @@ export function TabBar({
 
    /* ---------- drag-to-scroll (pointer events: mouse + touch + pen) ---------- */
    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      // Jangan mulai drag kalau yang ditekan adalah tab atau tombol close
+      const target = e.target as HTMLElement;
+      if (target.closest('.tab-item')) return;
+
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       const el = scrollRef.current;
       if (!el) return;
