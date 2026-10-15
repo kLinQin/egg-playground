@@ -639,8 +639,8 @@
    white-space: nowrap;
 }
 
-/* ---------- Mobile: sidebar horizontal ---------- */
-@media (max-width: 768px) {
+/* ---------- Mobile & tablet: sidebar horizontal ---------- */
+@media (max-width: 1024px) {
    .help-view__body {
       flex-direction: column;
    }

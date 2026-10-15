@@ -1443,7 +1443,10 @@ function App() {
                 style={
                   isMobile
                     ? undefined
-                    : { width: filesCol.width, flexShrink: 0 }
+                    : ({
+                      '--col-width': `${filesCol.width}px`,
+                      flexShrink: 0,
+                    } as React.CSSProperties)
                 }
               >
                 <FileManager
@@ -1545,7 +1548,10 @@ function App() {
                   }`}
                 style={
                   isMobile ? undefined
-                    : { width: gitCol.width, flexShrink: 0 }
+                    : ({
+                      '--col-width': `${gitCol.width}px`,
+                      flexShrink: 0,
+                    } as React.CSSProperties)
                 }
               >
                 {source === 'github' ? (

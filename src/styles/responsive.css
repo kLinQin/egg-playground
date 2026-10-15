@@ -1,3 +1,20 @@
+/* ===================== Desktop: lebar sidebar dari CSS var ===================== */
+.app__col--files,
+.app__col--git {
+   width: var(--col-width, 220px);
+}
+
+/* ===================== Desktop Sempit: ≤1024px ===================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+
+   .app__col--files,
+   .app__col--git {
+      width: 200px;
+      min-width: 200px;
+      max-width: 200px;
+   }
+}
+
 /* ===================== Mobile: Toolbar & Umum ===================== */
 @media (max-width: 768px) {
    .toolbar {
@@ -100,8 +117,8 @@
    }
 }
 
-/* ===================== Mobile: Help Modal ===================== */
-@media (max-width: 768px) {
+/* ===================== Mobile & tablet: Help Modal ===================== */
+@media (max-width: 1024px) {
    .help-modal {
       width: 95vw;
       height: 90vh;

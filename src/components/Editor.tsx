@@ -18,10 +18,6 @@ import {
    redo,
    insertNewlineAndIndent,
    deleteCharBackward,
-   cursorCharLeft,
-   cursorCharRight,
-   cursorLineUp,
-   cursorLineDown,
    selectLine,
 } from '@codemirror/commands';
 import { forEachDiagnostic } from '@codemirror/lint';
@@ -524,33 +520,50 @@ export function Editor({
       view.focus();
    };
 
-   /* ---------- arrow keys (selectMode tetap aktif) ---------- */
+   /* ---------- arrow keys (selectMode tetap aktif, tetap jalan saat keyboard locked) ---------- */
+
+   /* Gerakkan kursor lewat dispatch selection langsung,
+      supaya tetap bekerja meski view tidak editable. */
+   const moveCursor = (head: number) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const max = view.state.doc.length;
+      const target = Math.max(0, Math.min(max, head));
+      view.dispatch({ selection: { anchor: target } });
+   };
+
    const handleArrowLeft = () => {
       const view = viewRef.current;
       if (!view) return;
-      cursorCharLeft(view);
-      view.focus();
+      moveCursor(view.state.selection.main.head - 1);
    };
 
    const handleArrowRight = () => {
       const view = viewRef.current;
       if (!view) return;
-      cursorCharRight(view);
-      view.focus();
+      moveCursor(view.state.selection.main.head + 1);
    };
 
    const handleArrowUp = () => {
       const view = viewRef.current;
       if (!view) return;
-      cursorLineUp(view);
-      view.focus();
+      const pos = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(pos);
+      if (line.number <= 1) return;
+      const prev = view.state.doc.line(line.number - 1);
+      const col = pos - line.from;
+      moveCursor(Math.min(prev.to, prev.from + col));
    };
 
    const handleArrowDown = () => {
       const view = viewRef.current;
       if (!view) return;
-      cursorLineDown(view);
-      view.focus();
+      const pos = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(pos);
+      if (line.number >= view.state.doc.lines) return;
+      const next = view.state.doc.line(line.number + 1);
+      const col = pos - line.from;
+      moveCursor(Math.min(next.to, next.from + col));
    };
 
    /* ---------- toggle search panel ---------- */

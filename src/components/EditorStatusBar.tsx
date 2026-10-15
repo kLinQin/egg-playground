@@ -162,6 +162,10 @@ export function EditorStatusBar({
    const handlePointerDown = (
       e: React.PointerEvent<HTMLDivElement>
    ) => {
+      // Jangan mulai drag kalau yang ditekan adalah tombol
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       const el = actionScrollRef.current;
       if (!el) return;
