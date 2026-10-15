@@ -66,6 +66,8 @@ export function TabBar({
       startX: 0,
       startScrollLeft: 0,
       pointerId: -1,
+      pressTabId: null as string | null,
+      pressOnClose: false,
    });
 
    /* auto-scroll ke tab aktif */
@@ -137,19 +139,23 @@ export function TabBar({
 
    /* ---------- drag-to-scroll (pointer events: mouse + touch + pen) ---------- */
    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-      // Jangan mulai drag kalau yang ditekan adalah tab atau tombol close
-      const target = e.target as HTMLElement;
-      if (target.closest('.tab-item')) return;
-
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       const el = scrollRef.current;
       if (!el) return;
+
+      const target = e.target as HTMLElement;
+      const tabEl = target.closest<HTMLElement>('.tab-item');
+      const pressTabId = tabEl?.dataset.tabId ?? null;
+      const pressOnClose = !!target.closest('.tab-item__close');
+
       dragRef.current = {
          active: true,
          moved: false,
          startX: e.clientX,
          startScrollLeft: el.scrollLeft,
          pointerId: e.pointerId,
+         pressTabId,
+         pressOnClose,
       };
       el.setPointerCapture(e.pointerId);
    };
@@ -175,13 +181,19 @@ export function TabBar({
       if (el && el.hasPointerCapture(d.pointerId)) {
          el.releasePointerCapture(d.pointerId);
       }
-      d.active = false;
-   };
 
-   /* cegah klik tab saat drag */
-   const handleTabClick = (id: string) => {
-      if (dragRef.current.moved) return;
-      onSelect(id);
+      // Kalau tidak drag → anggap klik
+      if (!d.moved && d.pressTabId) {
+         if (d.pressOnClose) {
+            onClose(d.pressTabId);
+         } else {
+            onSelect(d.pressTabId);
+         }
+      }
+
+      d.active = false;
+      d.pressTabId = null;
+      d.pressOnClose = false;
    };
 
    return (
@@ -211,7 +223,6 @@ export function TabBar({
                      key={file.id}
                      data-tab-id={file.id}
                      className={`tab-item ${isActive ? 'tab-item--active' : ''}`}
-                     onClick={() => handleTabClick(file.id)}
                      title={file.name}
                   >
                      <Icon
@@ -235,10 +246,6 @@ export function TabBar({
                      <button
                         type="button"
                         className="tab-item__close"
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           onClose(file.id);
-                        }}
                         title="Tutup tab"
                      >
                         <X size={12} />

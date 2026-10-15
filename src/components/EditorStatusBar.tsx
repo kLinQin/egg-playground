@@ -121,6 +121,7 @@ export function EditorStatusBar({
       startX: 0,
       startScrollLeft: 0,
       pointerId: -1,
+      pressAction: null as (() => void) | null,
    });
 
    /* close dropdown bahasa on outside click */
@@ -158,23 +159,48 @@ export function EditorStatusBar({
       fn();
    };
 
-   /* ---------- pointer handlers untuk drag-to-scroll ---------- */
+   /* ---------- pointer handlers untuk drag-to-scroll + klik aksi ---------- */
    const handlePointerDown = (
       e: React.PointerEvent<HTMLDivElement>
    ) => {
-      // Jangan mulai drag kalau yang ditekan adalah tombol
-      const target = e.target as HTMLElement;
-      if (target.closest('button')) return;
-
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       const el = actionScrollRef.current;
       if (!el) return;
+
+      const target = e.target as HTMLElement;
+      const btn = target.closest<HTMLButtonElement>('button.status-bar__action-btn');
+      const actionName = btn?.dataset.action ?? null;
+
+      let pressAction: (() => void) | null = null;
+      switch (actionName) {
+         case 'undo': pressAction = () => runAction(onUndo); break;
+         case 'redo': pressAction = () => runAction(onRedo); break;
+         case 'word': pressAction = () => runAction(onSelectWord); break;
+         case 'line': pressAction = () => runAction(onSelectLine); break;
+         case 'all': pressAction = () => runAction(onSelectAll); break;
+         case 'copy': pressAction = () => runAction(onCopy); break;
+         case 'cut': pressAction = () => runAction(onCut); break;
+         case 'paste': pressAction = () => runAction(onPaste); break;
+         case 'comma': pressAction = () => runAction(onInsertComma); break;
+         case 'brackets': pressAction = () => runAction(onInsertBrackets); break;
+         case 'quotes': pressAction = () => runAction(onInsertQuotes); break;
+         case 'space': pressAction = () => runAction(onInsertSpace); break;
+         case 'enter': pressAction = () => runAction(onInsertEnter); break;
+         case 'backspace': pressAction = () => runAction(onBackspace); break;
+         case 'arrow-left': pressAction = () => runAction(onArrowLeft); break;
+         case 'arrow-right': pressAction = () => runAction(onArrowRight); break;
+         case 'arrow-up': pressAction = () => runAction(onArrowUp); break;
+         case 'arrow-down': pressAction = () => runAction(onArrowDown); break;
+         default: pressAction = null;
+      }
+
       dragRef.current = {
          active: true,
          moved: false,
          startX: e.clientX,
          startScrollLeft: el.scrollLeft,
          pointerId: e.pointerId,
+         pressAction,
       };
       el.setPointerCapture(e.pointerId);
    };
@@ -202,7 +228,14 @@ export function EditorStatusBar({
       if (el && el.hasPointerCapture(d.pointerId)) {
          el.releasePointerCapture(d.pointerId);
       }
+
+      // kalau tidak drag → anggap klik aksi
+      if (!d.moved && d.pressAction) {
+         d.pressAction();
+      }
+
       d.active = false;
+      d.pressAction = null;
    };
 
    const CurrentIcon = language.Icon;
@@ -234,8 +267,8 @@ export function EditorStatusBar({
             >
                <button
                   type="button"
+                  data-action="undo"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onUndo)}
                   title="Undo"
                   aria-label="Undo"
                >
@@ -245,8 +278,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="redo"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onRedo)}
                   title="Redo"
                   aria-label="Redo"
                >
@@ -258,8 +291,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="word"
                   className={`status-bar__action-btn ${selectMode === 'word' ? 'is-active' : ''}`}
-                  onClick={() => runAction(onSelectWord)}
                   title="Pilih kata di posisi kursor (hold)"
                   aria-label="Select word"
                >
@@ -269,8 +302,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="line"
                   className={`status-bar__action-btn ${selectMode === 'line' ? 'is-active' : ''}`}
-                  onClick={() => runAction(onSelectLine)}
                   title="Pilih baris di posisi kursor (hold)"
                   aria-label="Select line"
                >
@@ -280,8 +313,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="all"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onSelectAll)}
                   title="Select All"
                   aria-label="Select All"
                >
@@ -291,8 +324,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="copy"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onCopy)}
                   title="Copy"
                   aria-label="Copy"
                >
@@ -302,8 +335,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="cut"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onCut)}
                   title="Cut"
                   aria-label="Cut"
                >
@@ -313,8 +346,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="paste"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onPaste)}
                   title="Paste"
                   aria-label="Paste"
                >
@@ -326,8 +359,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="comma"
                   className="status-bar__action-btn status-bar__action-btn--char"
-                  onClick={() => runAction(onInsertComma)}
                   title="Insert ,"
                   aria-label="Insert comma"
                >
@@ -337,8 +370,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="brackets"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onInsertBrackets)}
                   title='Insert [ ]'
                   aria-label='Insert brackets'
                >
@@ -348,8 +381,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="quotes"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onInsertQuotes)}
                   title='Insert " "'
                   aria-label='Insert quotes'
                >
@@ -359,8 +392,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="space"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onInsertSpace)}
                   title="Insert space"
                   aria-label="Insert space"
                >
@@ -370,8 +403,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="enter"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onInsertEnter)}
                   title="Insert newline"
                   aria-label="Insert newline"
                >
@@ -381,8 +414,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="backspace"
                   className="status-bar__action-btn"
-                  onClick={() => runAction(onBackspace)}
                   title="Hapus 1 karakter"
                   aria-label="Hapus 1 karakter"
                >
@@ -394,8 +427,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="arrow-left"
                   className="status-bar__action-btn status-bar__action-btn--icon"
-                  onClick={() => runAction(onArrowLeft)}
                   title="Kursor kiri"
                   aria-label="Kursor kiri"
                >
@@ -404,8 +437,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="arrow-right"
                   className="status-bar__action-btn status-bar__action-btn--icon"
-                  onClick={() => runAction(onArrowRight)}
                   title="Kursor kanan"
                   aria-label="Kursor kanan"
                >
@@ -414,8 +447,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="arrow-up"
                   className="status-bar__action-btn status-bar__action-btn--icon"
-                  onClick={() => runAction(onArrowUp)}
                   title="Kursor atas"
                   aria-label="Kursor atas"
                >
@@ -424,8 +457,8 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  data-action="arrow-down"
                   className="status-bar__action-btn status-bar__action-btn--icon"
-                  onClick={() => runAction(onArrowDown)}
                   title="Kursor bawah"
                   aria-label="Kursor bawah"
                >

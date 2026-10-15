@@ -33,6 +33,13 @@
 .local-panel__actions {
    display: flex;
    justify-content: center;
+   overflow-x: auto;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+}
+
+.local-panel__actions::-webkit-scrollbar {
+   display: none;
 }
 
 .local-panel__hint {
@@ -85,14 +92,16 @@
 .local-panel__switch-btn {
    display: inline-flex;
    align-items: center;
-   gap: 5px;
-   padding: 0 12px;
+   gap: 2px;
+   padding: 0 5px;
    font-size: 12px;
    font-family: inherit;
    background: transparent;
    color: var(--text);
    border: none;
    cursor: pointer;
+   white-space: nowrap;
+   flex-shrink: 0;
 }
 
 .local-panel__switch-btn+.local-panel__switch-btn {
