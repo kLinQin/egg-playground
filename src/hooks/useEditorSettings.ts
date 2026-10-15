@@ -18,6 +18,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
    bottomBarHeight: 24,
    tabMaxWidth: 200,
    headerHeight: 34,
+   keyboardLocked: false,
 };
 
 function read(): EditorSettings {

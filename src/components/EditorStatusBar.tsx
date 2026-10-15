@@ -11,9 +11,21 @@ import {
    Clipboard,
    Brackets,
    Quote,
+   Search,
+   Keyboard,
+   KeyboardOff,
+   CornerDownLeft,
+   Space,
+   Delete,
+   ArrowUp,
+   ArrowDown,
+   ArrowLeft,
+   ArrowRight,
 } from 'lucide-react';
 import type { LangDef } from '../languages';
 import { LANGS } from '../languages';
+
+type SelectMode = 'word' | 'line' | null;
 
 type Props = {
    line: number;
@@ -27,17 +39,36 @@ type Props = {
    errors?: number;
    warnings?: number;
 
+   /* keyboard lock */
+   keyboardLocked: boolean;
+   onToggleKeyboardLock: () => void;
+
+   /* select mode (word/line hold) */
+   selectMode: SelectMode;
+
    /* mobile action bar */
    onUndo: () => void;
    onRedo: () => void;
    onSelectAll: () => void;
+   onSelectWord: () => void;
+   onSelectLine: () => void;
    onCopy: () => void;
    onCut: () => void;
    onPaste: () => void;
    onInsertComma: () => void;
    onInsertBrackets: () => void;
    onInsertQuotes: () => void;
+   onInsertSpace: () => void;
+   onInsertEnter: () => void;
+   onBackspace: () => void;
+   onArrowLeft: () => void;
+   onArrowRight: () => void;
+   onArrowUp: () => void;
+   onArrowDown: () => void;
+   onSearch: () => void;
 };
+
+const DRAG_THRESHOLD = 5;
 
 export function EditorStatusBar({
    line,
@@ -50,15 +81,28 @@ export function EditorStatusBar({
    charCount,
    errors = 0,
    warnings = 0,
+   keyboardLocked,
+   onToggleKeyboardLock,
+   selectMode,
    onUndo,
    onRedo,
    onSelectAll,
+   onSelectWord,
+   onSelectLine,
    onCopy,
    onCut,
    onPaste,
    onInsertComma,
    onInsertBrackets,
    onInsertQuotes,
+   onInsertSpace,
+   onInsertEnter,
+   onBackspace,
+   onArrowLeft,
+   onArrowRight,
+   onArrowUp,
+   onArrowDown,
+   onSearch,
 }: Props) {
    const hasErrors = errors > 0;
    const hasWarnings = warnings > 0;
@@ -68,6 +112,16 @@ export function EditorStatusBar({
 
    /* ---------- mode aksi (replace bottom bar) ---------- */
    const [actionsMode, setActionsMode] = useState(false);
+
+   /* ---------- drag-to-scroll di action-scroll ---------- */
+   const actionScrollRef = useRef<HTMLDivElement>(null);
+   const dragRef = useRef({
+      active: false,
+      moved: false,
+      startX: 0,
+      startScrollLeft: 0,
+      pointerId: -1,
+   });
 
    /* close dropdown bahasa on outside click */
    useEffect(() => {
@@ -102,7 +156,49 @@ export function EditorStatusBar({
 
    const runAction = (fn: () => void) => {
       fn();
-      /* tetap di mode aksi — user bisa pilih aksi lain */
+   };
+
+   /* ---------- pointer handlers untuk drag-to-scroll ---------- */
+   const handlePointerDown = (
+      e: React.PointerEvent<HTMLDivElement>
+   ) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      const el = actionScrollRef.current;
+      if (!el) return;
+      dragRef.current = {
+         active: true,
+         moved: false,
+         startX: e.clientX,
+         startScrollLeft: el.scrollLeft,
+         pointerId: e.pointerId,
+      };
+      el.setPointerCapture(e.pointerId);
+   };
+
+   const handlePointerMove = (
+      e: React.PointerEvent<HTMLDivElement>
+   ) => {
+      const d = dragRef.current;
+      if (!d.active) return;
+      const el = actionScrollRef.current;
+      if (!el) return;
+      const dx = e.clientX - d.startX;
+      if (!d.moved && Math.abs(dx) > DRAG_THRESHOLD) {
+         d.moved = true;
+      }
+      if (d.moved) {
+         el.scrollLeft = d.startScrollLeft - dx;
+      }
+   };
+
+   const handlePointerUp = () => {
+      const d = dragRef.current;
+      if (!d.active) return;
+      const el = actionScrollRef.current;
+      if (el && el.hasPointerCapture(d.pointerId)) {
+         el.releasePointerCapture(d.pointerId);
+      }
+      d.active = false;
    };
 
    const CurrentIcon = language.Icon;
@@ -124,9 +220,14 @@ export function EditorStatusBar({
                </button>
             </div>
 
-            
-
-            <div className="status-bar__action-scroll">
+            <div
+               className="status-bar__action-scroll"
+               ref={actionScrollRef}
+               onPointerDown={handlePointerDown}
+               onPointerMove={handlePointerMove}
+               onPointerUp={handlePointerUp}
+               onPointerCancel={handlePointerUp}
+            >
                <button
                   type="button"
                   className="status-bar__action-btn"
@@ -153,13 +254,35 @@ export function EditorStatusBar({
 
                <button
                   type="button"
+                  className={`status-bar__action-btn ${selectMode === 'word' ? 'is-active' : ''}`}
+                  onClick={() => runAction(onSelectWord)}
+                  title="Pilih kata di posisi kursor (hold)"
+                  aria-label="Select word"
+               >
+                  <TextSelect size={14} />
+                  <span>Word</span>
+               </button>
+
+               <button
+                  type="button"
+                  className={`status-bar__action-btn ${selectMode === 'line' ? 'is-active' : ''}`}
+                  onClick={() => runAction(onSelectLine)}
+                  title="Pilih baris di posisi kursor (hold)"
+                  aria-label="Select line"
+               >
+                  <TextSelect size={14} />
+                  <span>Line</span>
+               </button>
+
+               <button
+                  type="button"
                   className="status-bar__action-btn"
                   onClick={() => runAction(onSelectAll)}
                   title="Select All"
                   aria-label="Select All"
                >
                   <TextSelect size={14} />
-                  <span>Select</span>
+                  <span>All</span>
                </button>
 
                <button
@@ -229,6 +352,81 @@ export function EditorStatusBar({
                   <Quote size={14} />
                   <span>Quote</span>
                </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onInsertSpace)}
+                  title="Insert space"
+                  aria-label="Insert space"
+               >
+                  <Space size={14} />
+                  <span>Space</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onInsertEnter)}
+                  title="Insert newline"
+                  aria-label="Insert newline"
+               >
+                  <CornerDownLeft size={14} />
+                  <span>Enter</span>
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn"
+                  onClick={() => runAction(onBackspace)}
+                  title="Hapus 1 karakter"
+                  aria-label="Hapus 1 karakter"
+               >
+                  <Delete size={14} />
+                  <span>Del</span>
+               </button>
+
+               <span className="status-bar__action-sep" />
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn status-bar__action-btn--icon"
+                  onClick={() => runAction(onArrowLeft)}
+                  title="Kursor kiri"
+                  aria-label="Kursor kiri"
+               >
+                  <ArrowLeft size={14} />
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn status-bar__action-btn--icon"
+                  onClick={() => runAction(onArrowRight)}
+                  title="Kursor kanan"
+                  aria-label="Kursor kanan"
+               >
+                  <ArrowRight size={14} />
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn status-bar__action-btn--icon"
+                  onClick={() => runAction(onArrowUp)}
+                  title="Kursor atas"
+                  aria-label="Kursor atas"
+               >
+                  <ArrowUp size={14} />
+               </button>
+
+               <button
+                  type="button"
+                  className="status-bar__action-btn status-bar__action-btn--icon"
+                  onClick={() => runAction(onArrowDown)}
+                  title="Kursor bawah"
+                  aria-label="Kursor bawah"
+               >
+                  <ArrowDown size={14} />
+               </button>
             </div>
          </div>
       );
@@ -250,8 +448,67 @@ export function EditorStatusBar({
             </button>
          </div>
 
-         
+         {/* ---------- Search ---------- */}
+         <div className="status-bar__actions">
+            <button
+               type="button"
+               className="status-bar__actions-btn"
+               onClick={onSearch}
+               title="Cari (Ctrl+F)"
+               aria-label="Cari"
+            >
+               <Search size={12} />
+            </button>
+         </div>
 
+         {/* ---------- Keyboard lock toggle ---------- */}
+         <div className="status-bar__actions">
+            <button
+               type="button"
+               className={`status-bar__actions-btn ${keyboardLocked ? 'is-active' : ''}`}
+               onClick={onToggleKeyboardLock}
+               title={
+                  keyboardLocked
+                     ? 'Keyboard terkunci — klik untuk aktifkan'
+                     : 'Kunci keyboard virtual'
+               }
+               aria-label="Toggle keyboard lock"
+               aria-pressed={keyboardLocked}
+            >
+               {keyboardLocked ? (
+                  <KeyboardOff size={12} />
+               ) : (
+                  <Keyboard size={12} />
+               )}
+            </button>
+         </div>
+
+         {(hasErrors || hasWarnings) && (
+            <>
+               {hasErrors && (
+                  <span className="status-bar__item status-bar__item--error">
+                     ✕ {errors}
+                  </span>
+               )}
+               {hasWarnings && (
+                  <span className="status-bar__item status-bar__item--warning">
+                     ⚠ {warnings}
+                  </span>
+               )}
+            </>
+         )}
+
+         <span className="status-bar__spacer" />
+
+         <span className="status-bar__item">{lineCount} lines</span>
+
+         <span className="status-bar__item">{charCount} chars</span>
+
+         <span className="status-bar__item status-bar__item--pos">
+            Ln {line}, Col {col}
+         </span>
+
+         {/* ---------- Language (paling kanan) ---------- */}
          <div className="status-bar__lang" ref={rootRef}>
             <button
                type="button"
@@ -327,36 +584,6 @@ export function EditorStatusBar({
                </div>
             )}
          </div>
-
-         {(hasErrors || hasWarnings) && (
-            <>
-               
-               {hasErrors && (
-                  <span className="status-bar__item status-bar__item--error">
-                     ✕ {errors}
-                  </span>
-               )}
-               {hasWarnings && (
-                  <span className="status-bar__item status-bar__item--warning">
-                     ⚠ {warnings}
-                  </span>
-               )}
-            </>
-         )}
-
-         <span className="status-bar__spacer" />
-
-         <span className="status-bar__item">{lineCount} lines</span>
-
-         
-
-         <span className="status-bar__item">{charCount} chars</span>
-
-         
-
-         <span className="status-bar__item status-bar__item--pos">
-            Ln {line}, Col {col}
-         </span>
       </div>
    );
 }

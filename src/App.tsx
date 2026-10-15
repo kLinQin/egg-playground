@@ -21,6 +21,7 @@ import { usePanelState } from './hooks/usePanelState';
 import { Toolbar } from './components/Toolbar';
 import { FileManager } from './components/FileManager';
 import { Editor } from './components/Editor';
+import type { EditorViewState } from './components/Editor';
 import { TabBar } from './components/TabBar';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { LocalPanel } from './components/LocalPanel';
@@ -112,7 +113,6 @@ function App() {
   } = useTabs(files);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
-  
 
   const {
     filesOpen,
@@ -130,6 +130,13 @@ function App() {
 
   const [editorResetKey, setEditorResetKey] = useState(0);
   const isDiscardingRef = useRef(false);
+
+  /* ---------- view state per tab (cursor + scroll) ---------- */
+  const viewStatesRef = useRef<Map<string, EditorViewState>>(new Map());
+
+  const handleSaveViewState = (fileId: string, state: EditorViewState) => {
+    viewStatesRef.current.set(fileId, state);
+  };
 
   const sourceSnapshotRef = useRef<Partial<Record<FileSource, FileItem[]>>>({});
 
@@ -1509,6 +1516,14 @@ function App() {
                     onChange={handleContentChange}
                     onLanguageOverrideChange={handleLanguageOverrideChange}
                     resetKey={editorResetKey}
+                    onSaveViewState={handleSaveViewState}
+                    initialViewState={viewStatesRef.current.get(activeFile.id)}
+                    onToggleKeyboardLock={() =>
+                      updateSettings(
+                        'keyboardLocked',
+                        !settings.keyboardLocked
+                      )
+                    }
                   />
                 ) : (
                   <div className="editor-placeholder">Pilih atau buat file</div>

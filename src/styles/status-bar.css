@@ -199,16 +199,18 @@
    overflow-x: auto;
    overflow-y: hidden;
    padding: 0 6px;
-   scrollbar-width: thin;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+   cursor: grab;
+   touch-action: pan-x;
 }
 
 .status-bar__action-scroll::-webkit-scrollbar {
-   height: 3px;
+   display: none;
 }
 
-.status-bar__action-scroll::-webkit-scrollbar-thumb {
-   background: rgba(128, 128, 128, 0.3);
-   border-radius: 2px;
+.status-bar__action-scroll:active {
+   cursor: grabbing;
 }
 
 .status-bar__action-btn {
@@ -216,7 +218,8 @@
    align-items: center;
    gap: 4px;
    padding: 0 8px;
-   height: 22px;
+   height: clamp(18px, calc(var(--status-bar-height, 24px) - 4px), 22px);
+   box-sizing: border-box;
    font-size: 11px;
    font-family: inherit;
    background: transparent;
@@ -241,6 +244,12 @@
 
 .status-bar__action-btn span {
    line-height: 1;
+}
+
+.status-bar__action-btn.is-active {
+   background: var(--active-bg);
+   color: var(--active-text);
+   border-color: var(--border);
 }
 
 .status-bar__action-char {
@@ -339,4 +348,10 @@
 [data-theme='dark'] .status-bar__history-btn:hover,
 [data-theme='dark'] .status-bar__history-btn.is-active {
    color: #10b981;
+}
+
+.status-bar__action-btn--icon {
+   padding: 0;
+   width: 22px;
+   justify-content: center;
 }

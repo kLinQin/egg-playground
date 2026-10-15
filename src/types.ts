@@ -136,6 +136,12 @@ export type EditorSettings = {
    tabMaxWidth: number;
    /** tinggi header (file manager, tab bar, panel, diff view) */
    headerHeight: number;
+   /**
+    * Blokir keyboard virtual di mobile (Android/iOS).
+    * true → editor read-only dari sisi input keyboard, tapi bottom-bar
+    * action (copy/paste/insert/undo/dll) tetap bisa memodifikasi dokumen.
+    */
+   keyboardLocked: boolean;
 };
 
 /* ===================== Sumber file ===================== */

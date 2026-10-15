@@ -32,6 +32,8 @@ type Props = {
    isMobile: boolean;
 };
 
+const DRAG_THRESHOLD = 5;
+
 export function TabBar({
    files,
    tabs,
@@ -56,6 +58,15 @@ export function TabBar({
    const settingsRef = useRef<HTMLDivElement>(null);
    const [settingsOpen, setSettingsOpen] = useState(false);
    const [confirmReset, setConfirmReset] = useState(false);
+
+   /* drag-to-scroll state */
+   const dragRef = useRef({
+      active: false,
+      moved: false,
+      startX: 0,
+      startScrollLeft: 0,
+      pointerId: -1,
+   });
 
    /* auto-scroll ke tab aktif */
    useEffect(() => {
@@ -124,9 +135,61 @@ export function TabBar({
       }
    };
 
+   /* ---------- drag-to-scroll (pointer events: mouse + touch + pen) ---------- */
+   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      const el = scrollRef.current;
+      if (!el) return;
+      dragRef.current = {
+         active: true,
+         moved: false,
+         startX: e.clientX,
+         startScrollLeft: el.scrollLeft,
+         pointerId: e.pointerId,
+      };
+      el.setPointerCapture(e.pointerId);
+   };
+
+   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = dragRef.current;
+      if (!d.active) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      const dx = e.clientX - d.startX;
+      if (!d.moved && Math.abs(dx) > DRAG_THRESHOLD) {
+         d.moved = true;
+      }
+      if (d.moved) {
+         el.scrollLeft = d.startScrollLeft - dx;
+      }
+   };
+
+   const handlePointerUp = () => {
+      const d = dragRef.current;
+      if (!d.active) return;
+      const el = scrollRef.current;
+      if (el && el.hasPointerCapture(d.pointerId)) {
+         el.releasePointerCapture(d.pointerId);
+      }
+      d.active = false;
+   };
+
+   /* cegah klik tab saat drag */
+   const handleTabClick = (id: string) => {
+      if (dragRef.current.moved) return;
+      onSelect(id);
+   };
+
    return (
       <div className="tab-bar">
-         <div className="tab-bar__scroll" ref={scrollRef}>
+         <div
+            className="tab-bar__scroll"
+            ref={scrollRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+         >
             {visibleTabs.map((file) => {
                const isActive = file.id === activeTabId;
                const isFileDirty = file.content !== file.savedContent;
@@ -144,7 +207,7 @@ export function TabBar({
                      key={file.id}
                      data-tab-id={file.id}
                      className={`tab-item ${isActive ? 'tab-item--active' : ''}`}
-                     onClick={() => onSelect(file.id)}
+                     onClick={() => handleTabClick(file.id)}
                      title={file.name}
                   >
                      <Icon
