@@ -22,6 +22,7 @@
    flex-shrink: 0;
    position: relative;
    margin: 0 -2px;
+   touch-action: none;
    /* geser keluar 2px di tiap sisi, area klik lebih lebar tanpa makan ruang kolom */
    z-index: 5;
 }
@@ -100,8 +101,8 @@
    position: fixed;
    top: 40px;
    bottom: 0;
-   width: 82vw;
-   max-width: 320px;
+   width: 100vw;
+   max-width: none;
    z-index: 201;
    animation: drawer-slide-in 0.2s ease-out;
 }

@@ -1,17 +1,9 @@
 /* ===================== Desktop: lebar sidebar dari CSS var ===================== */
-.app__col--files,
-.app__col--git {
-   width: var(--col-width, 220px);
-}
-
-/* ===================== Desktop Sempit: ≤1024px ===================== */
-@media (min-width: 769px) and (max-width: 1024px) {
+@media (min-width: 769px) {
 
    .app__col--files,
    .app__col--git {
-      width: 200px;
-      min-width: 200px;
-      max-width: 200px;
+      width: var(--col-width, 220px);
    }
 }
 

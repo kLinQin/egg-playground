@@ -341,3 +341,24 @@
    flex-shrink: 0;
    margin-left: -20px;
 }
+
+/* ---------- File manager: search input (header mode) ---------- */
+.file-manager__search-input {
+   flex: 1;
+   min-width: 0;
+   height: 22px;
+   padding: 0 8px;
+   font-family: inherit;
+   font-size: 12px;
+   font-weight: normal;
+   text-transform: none;
+   color: var(--text);
+   background: var(--bg);
+   border: 1px solid var(--border);
+   border-radius: 3px;
+   outline: none;
+}
+
+.file-manager__search-input:focus {
+   border-color: var(--primary);
+}

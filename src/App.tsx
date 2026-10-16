@@ -52,6 +52,12 @@ type PendingSourceChange = FileSource | null;
 
 const SUCCESS_TIMEOUT = 3000;
 
+/* batas & initial lebar sidebar per breakpoint */
+const COL_MAX_DESKTOP = 500;
+const COL_MAX_TABLET = 280;
+const COL_INITIAL_DESKTOP = 250;
+const COL_INITIAL_TABLET = 200;
+
 function getFullPath(fileId: string, files: FileItem[]): string {
   const parts: string[] = [];
   let currentId: string | null = fileId;
@@ -113,6 +119,7 @@ function App() {
   } = useTabs(files);
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const isTablet = useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
 
   const {
     filesOpen,
@@ -149,16 +156,19 @@ function App() {
     document.body.style.fontFamily = activeFont.family;
   }, [activeFont.family]);
 
+  const colMax = isTablet ? COL_MAX_TABLET : COL_MAX_DESKTOP;
+  const colInitial = isTablet ? COL_INITIAL_TABLET : COL_INITIAL_DESKTOP;
+
   const filesCol = useResizable({
-    initial: 220,
+    initial: colInitial,
     min: 150,
-    max: 500,
+    max: colMax,
     storageKey: 'webden-files-col-width',
   });
   const gitCol = useResizable({
-    initial: 280,
+    initial: colInitial,
     min: 150,
-    max: 500,
+    max: colMax,
     reverse: true,
     storageKey: 'webden-git-col-width',
   });
@@ -1468,7 +1478,7 @@ function App() {
               {!isMobile && (
                 <div
                   className="resize-handle"
-                  onMouseDown={filesCol.onMouseDown}
+                  onPointerDown={filesCol.onPointerDown}
                 />
               )}
             </>
@@ -1540,7 +1550,7 @@ function App() {
               {!isMobile && (
                 <div
                   className="resize-handle"
-                  onMouseDown={gitCol.onMouseDown}
+                  onPointerDown={gitCol.onPointerDown}
                 />
               )}
               <div

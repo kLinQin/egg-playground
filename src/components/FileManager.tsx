@@ -11,6 +11,13 @@ import {
    ChevronRight,
    ChevronDown,
    MoreHorizontal,
+   Search,
+   Download,
+   ArrowDownAZ,
+   ArrowUpAZ,
+   ArrowUpDown,
+   ListTree,
+   ListCollapse,
 } from 'lucide-react';
 import type { FileItem, FileTreeNode } from '../types';
 import { getFileIcon } from '../lib/fileIcons';
@@ -32,6 +39,11 @@ type Props = {
    showClearAll: boolean;
    onRequestClearAll: () => void;
 };
+
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_THRESHOLD = 8;
+
+type SortMode = 'name-asc' | 'name-desc' | 'type';
 
 /* ---------- indent guide: render `depth` span vertikal ---------- */
 function Indent({ depth }: { depth: number }) {
@@ -91,6 +103,28 @@ export function FileManager({
    const [moveMenuFor, setMoveMenuFor] = useState<string | null>(null);
    const moveMenuRef = useRef<HTMLDivElement>(null);
 
+   /* ---------- sort & search state ---------- */
+   const [sortMode, setSortMode] = useState<SortMode>('name-asc');
+   const [searchOpen, setSearchOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState('');
+
+   /* ---------- long-press state (touch) ---------- */
+   const longPressRef = useRef<{
+      timer: number | null;
+      fileId: string | null;
+      startX: number;
+      startY: number;
+      pointerId: number | null;
+      triggered: boolean;
+   }>({
+      timer: null,
+      fileId: null,
+      startX: 0,
+      startY: 0,
+      pointerId: null,
+      triggered: false,
+   });
+
    /* klik di luar → tutup action menu */
    useEffect(() => {
       if (!actionMenuFor) return;
@@ -127,11 +161,36 @@ export function FileManager({
       return () => document.removeEventListener('keydown', onKey);
    }, [confirmClearAll]);
 
+   /* ---------- compute: visible file ids (untuk filter search) ---------- */
+   const visibleIds = useMemo<Set<string> | null>(() => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return null;
+
+      const byId = new Map(files.map((f) => [f.id, f]));
+      const visible = new Set<string>();
+
+      for (const f of files) {
+         if (!f.name.toLowerCase().includes(q)) continue;
+         visible.add(f.id);
+         // tambahkan semua leluhur supaya folder muncul di tree
+         let cur = f.parentId;
+         const guard = new Set<string>();
+         while (cur && !guard.has(cur)) {
+            guard.add(cur);
+            visible.add(cur);
+            const parent = byId.get(cur);
+            cur = parent ? parent.parentId : null;
+         }
+      }
+      return visible;
+   }, [files, searchQuery]);
+
    /* ---------- build tree dari flat files ---------- */
    const tree: FileTreeNode[] = useMemo(() => {
       const byParent = new Map<string | null, FileItem[]>();
 
       for (const f of files) {
+         if (visibleIds && !visibleIds.has(f.id)) continue;
          const arr = byParent.get(f.parentId) ?? [];
          arr.push(f);
          byParent.set(f.parentId, arr);
@@ -139,8 +198,12 @@ export function FileManager({
 
       for (const arr of byParent.values()) {
          arr.sort((a, b) => {
-            if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
-            return a.name.localeCompare(b.name);
+            if (sortMode === 'type') {
+               if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+               return a.name.localeCompare(b.name);
+            }
+            const cmp = a.name.localeCompare(b.name);
+            return sortMode === 'name-desc' ? -cmp : cmp;
          });
       }
 
@@ -150,14 +213,14 @@ export function FileManager({
             file,
             depth,
             children:
-               file.kind === 'folder' && file.expanded
+               file.kind === 'folder' && (file.expanded || (visibleIds && visibleIds.has(file.id) && searchQuery.trim() !== ''))
                   ? build(file.id, depth + 1)
                   : [],
          }));
       };
 
       return build(null, 0);
-   }, [files]);
+   }, [files, sortMode, visibleIds, searchQuery]);
 
    /* ---------- count file (bukan folder) ---------- */
    const { fileCount, folderCount } = useMemo(() => {
@@ -265,6 +328,47 @@ export function FileManager({
       setError(null);
    };
 
+   /* ---------- download ---------- */
+   const handleDownload = (file: FileItem) => {
+      if (file.kind === 'folder') return;
+      const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+   };
+
+   /* ---------- collapse / expand all ---------- */
+   const allExpanded = useMemo(
+      () => files.some((f) => f.kind === 'folder' && f.expanded),
+      [files]
+   );
+   const handleToggleAll = () => {
+      const target = !allExpanded;
+      for (const f of files) {
+         if (f.kind !== 'folder') continue;
+         if (!!f.expanded === target) continue;
+         onToggleFolder(f.id);
+      }
+   };
+
+   /* ---------- sort cycle ---------- */
+   const cycleSort = () => {
+      setSortMode((s) =>
+         s === 'name-asc' ? 'name-desc' : s === 'name-desc' ? 'type' : 'name-asc'
+      );
+   };
+   const sortTitle =
+      sortMode === 'name-asc'
+         ? 'Sort: Name A-Z'
+         : sortMode === 'name-desc'
+            ? 'Sort: Name Z-A'
+            : 'Sort: Type';
+
    /* ---------- drag & drop handlers ---------- */
    const handleDragStart = (id: string, e: React.DragEvent) => {
       e.stopPropagation();
@@ -304,6 +408,60 @@ export function FileManager({
       setDraggingId(null);
    };
 
+   /* ---------- long-press (touch) ---------- */
+   const clearLongPress = () => {
+      const lp = longPressRef.current;
+      if (lp.timer !== null) {
+         window.clearTimeout(lp.timer);
+         lp.timer = null;
+      }
+      lp.fileId = null;
+      lp.pointerId = null;
+      lp.triggered = false;
+   };
+
+   const handleItemPointerDown = (
+      fileId: string,
+      e: React.PointerEvent<HTMLDivElement>
+   ) => {
+      if (e.pointerType !== 'touch') return;
+
+      const lp = longPressRef.current;
+      lp.fileId = fileId;
+      lp.startX = e.clientX;
+      lp.startY = e.clientY;
+      lp.pointerId = e.pointerId;
+      lp.triggered = false;
+
+      if (lp.timer !== null) window.clearTimeout(lp.timer);
+      lp.timer = window.setTimeout(() => {
+         lp.triggered = true;
+         lp.timer = null;
+         setActionMenuFor(fileId);
+      }, LONG_PRESS_MS);
+   };
+
+   const handleItemPointerMove = (
+      e: React.PointerEvent<HTMLDivElement>
+   ) => {
+      const lp = longPressRef.current;
+      if (lp.timer === null) return;
+      if (e.pointerId !== lp.pointerId) return;
+      const dx = e.clientX - lp.startX;
+      const dy = e.clientY - lp.startY;
+      if (dx * dx + dy * dy > LONG_PRESS_MOVE_THRESHOLD * LONG_PRESS_MOVE_THRESHOLD) {
+         clearLongPress();
+      }
+   };
+
+   const handleItemPointerUpOrCancel = (
+      e: React.PointerEvent<HTMLDivElement>
+   ) => {
+      const lp = longPressRef.current;
+      if (lp.pointerId !== null && e.pointerId !== lp.pointerId) return;
+      clearLongPress();
+   };
+
    /* ---------- render satu baris ---------- */
    const renderItem = (node: FileTreeNode) => {
       const { file, depth } = node;
@@ -321,16 +479,12 @@ export function FileManager({
                ? 'modified'
                : null;
 
-      /* folder → tanpa icon; file → pakai getFileIcon */
       const { Icon, color } = isFolder
          ? { Icon: null, color: null }
          : getFileIcon(file.name);
 
-      /* ---------- tampil tombol ⋯? ---------- */
-      const showMore =
-         file.id === activeId || file.id === hoveredId;
+      const showMore = file.id === activeId || file.id === hoveredId;
 
-      /* ---------- chevron (folder) / spacer (file) ---------- */
       const chevron = isFolder ? (
          <button
             type="button"
@@ -353,13 +507,9 @@ export function FileManager({
          <span className="file-item__chevron-spacer" aria-hidden="true" />
       );
 
-      /* ---------- editing mode ---------- */
       if (isEditing) {
          return (
-            <div
-               key={file.id}
-               className="file-item file-item--editing"
-            >
+            <div key={file.id} className="file-item file-item--editing">
                <Indent depth={depth} />
                {chevron}
                {Icon && (
@@ -389,7 +539,6 @@ export function FileManager({
          );
       }
 
-      /* ---------- normal mode ---------- */
       return (
          <div key={file.id}>
             <div
@@ -405,7 +554,20 @@ export function FileManager({
                onDragOver={(e) => isFolder && handleDragOver(file.id, e)}
                onDragLeave={handleDragLeave}
                onDrop={(e) => isFolder && handleDrop(file.id, e)}
+               onPointerDown={(e) => handleItemPointerDown(file.id, e)}
+               onPointerMove={handleItemPointerMove}
+               onPointerUp={handleItemPointerUpOrCancel}
+               onPointerCancel={handleItemPointerUpOrCancel}
+               onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActionMenuFor(file.id);
+               }}
                onClick={() => {
+                  if (longPressRef.current.triggered) {
+                     longPressRef.current.triggered = false;
+                     return;
+                  }
                   if (isFolder) onToggleFolder(file.id);
                   else onSelect(file.id);
                }}
@@ -429,7 +591,6 @@ export function FileManager({
                   {isDirty && <span className="file-item__dirty">*</span>}
                </span>
 
-               {/* tombol ⋯ (more) — hanya saat active atau hover */}
                {showMore && (
                   <button
                      className="file-item__action file-item__action--more"
@@ -444,7 +605,6 @@ export function FileManager({
                   </button>
                )}
 
-               {/* dropdown aksi */}
                {actionMenuFor === file.id && (
                   <div
                      className="action-menu"
@@ -471,6 +631,18 @@ export function FileManager({
                         <Pencil size={14} />
                         <span>Rename</span>
                      </button>
+                     {!isFolder && (
+                        <button
+                           className="action-menu__item"
+                           onClick={() => {
+                              setActionMenuFor(null);
+                              handleDownload(file);
+                           }}
+                        >
+                           <Download size={14} />
+                           <span>Download</span>
+                        </button>
+                     )}
                      <button
                         className="action-menu__item action-menu__item--danger"
                         onClick={() => {
@@ -484,7 +656,6 @@ export function FileManager({
                   </div>
                )}
 
-               {/* dropdown Move (dari action menu) */}
                {moveMenuFor === file.id && (
                   <div
                      className="move-menu"
@@ -519,7 +690,6 @@ export function FileManager({
                )}
             </div>
 
-            {/* ---------- children (rekursif) ---------- */}
             {isFolder && file.expanded && (
                <>
                   {addingAt?.parentId === file.id && (
@@ -569,67 +739,133 @@ export function FileManager({
       );
    };
 
+   /* ---------- header mode: search / confirm clear / normal ---------- */
+   const renderHeader = () => {
+      if (confirmClearAll) {
+         return (
+            <>
+               <span className="file-manager__confirm-text">
+                  Hapus semua file?
+               </span>
+               <div className="file-manager__header-actions">
+                  <button
+                     className="icon-btn file-manager__confirm-ok"
+                     onClick={() => {
+                        setConfirmClearAll(false);
+                        onRequestClearAll();
+                     }}
+                     title="Ya, hapus semua"
+                  >
+                     <Check size={16} />
+                  </button>
+                  <button
+                     className="icon-btn"
+                     onClick={() => setConfirmClearAll(false)}
+                     title="Batal"
+                  >
+                     <X size={16} />
+                  </button>
+               </div>
+            </>
+         );
+      }
+
+      if (searchOpen) {
+         return (
+            <>
+               <input
+                  autoFocus
+                  className="file-manager__search-input"
+                  placeholder="Cari file..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                     if (e.key === 'Escape') {
+                        setSearchQuery('');
+                        setSearchOpen(false);
+                     }
+                  }}
+               />
+               <div className="file-manager__header-actions">
+                  <button
+                     className="icon-btn"
+                     onClick={() => {
+                        setSearchQuery('');
+                        setSearchOpen(false);
+                     }}
+                     title="Tutup pencarian"
+                  >
+                     <X size={16} />
+                  </button>
+               </div>
+            </>
+         );
+      }
+
+      return (
+         <>
+            <span>Files</span>
+            <div className="file-manager__header-actions">
+               <button
+                  className="icon-btn"
+                  onClick={() => startCreate(null, true)}
+                  title="Folder baru"
+                  disabled={!!addingAt || editingId !== null}
+               >
+                  <FolderPlus size={16} />
+               </button>
+               <button
+                  className="icon-btn"
+                  onClick={() => startCreate(null, false)}
+                  title="File baru"
+                  disabled={!!addingAt || editingId !== null}
+               >
+                  <Plus size={16} />
+               </button>
+               <button
+                  className="icon-btn"
+                  onClick={() => setSearchOpen(true)}
+                  title="Cari file"
+               >
+                  <Search size={16} />
+               </button>
+               <button
+                  className="icon-btn"
+                  onClick={handleToggleAll}
+                  title={allExpanded ? 'Collapse all' : 'Expand all'}
+               >
+                  {allExpanded ? <ListCollapse size={16} /> : <ListTree size={16} />}
+               </button>
+               <button
+                  className="icon-btn"
+                  onClick={cycleSort}
+                  title={sortTitle}
+               >
+                  {sortMode === 'name-asc' ? (
+                     <ArrowDownAZ size={16} />
+                  ) : sortMode === 'name-desc' ? (
+                     <ArrowUpAZ size={16} />
+                  ) : (
+                     <ArrowUpDown size={16} />
+                  )}
+               </button>
+               {showClearAll && (
+                  <button
+                     className="icon-btn file-manager__clear"
+                     onClick={() => setConfirmClearAll(true)}
+                     title="Hapus semua file di Local"
+                  >
+                     <Trash2 size={16} />
+                  </button>
+               )}
+            </div>
+         </>
+      );
+   };
+
    return (
       <div className="file-manager">
-         <div className="file-manager__header">
-            {confirmClearAll ? (
-               <>
-                  <span className="file-manager__confirm-text">
-                     Hapus semua file?
-                  </span>
-                  <div className="file-manager__header-actions">
-                     <button
-                        className="icon-btn file-manager__confirm-ok"
-                        onClick={() => {
-                           setConfirmClearAll(false);
-                           onRequestClearAll();
-                        }}
-                        title="Ya, hapus semua"
-                     >
-                        <Check size={16} />
-                     </button>
-                     <button
-                        className="icon-btn"
-                        onClick={() => setConfirmClearAll(false)}
-                        title="Batal"
-                     >
-                        <X size={16} />
-                     </button>
-                  </div>
-               </>
-            ) : (
-               <>
-                  <span>Files</span>
-                  <div className="file-manager__header-actions">
-                     <button
-                        className="icon-btn"
-                        onClick={() => startCreate(null, true)}
-                        title="Folder baru"
-                        disabled={!!addingAt || editingId !== null}
-                     >
-                        <FolderPlus size={16} />
-                     </button>
-                     <button
-                        className="icon-btn"
-                        onClick={() => startCreate(null, false)}
-                        title="File baru"
-                        disabled={!!addingAt || editingId !== null}
-                     >
-                        <Plus size={16} />
-                     </button>
-                     {showClearAll && (
-                        <button
-                           className="icon-btn file-manager__clear"
-                           onClick={() => setConfirmClearAll(true)}
-                           title="Hapus semua file di Local"
-                        >
-                           <Trash2 size={16} />
-                        </button>
-                     )}
-                  </div>
-               </>
-            )}
-         </div>
+         <div className="file-manager__header">{renderHeader()}</div>
 
          <div
             className={
@@ -681,7 +917,9 @@ export function FileManager({
 
             {tree.length === 0 && !addingAt && (
                <div className="file-manager__empty">
-                  Belum ada file. Klik + untuk buat.
+                  {searchQuery
+                     ? 'Tidak ada file yang cocok.'
+                     : 'Belum ada file. Klik + untuk buat.'}
                </div>
             )}
 
